@@ -5,5 +5,5 @@ type FetchTask struct {
 }
 
 type FetchResp struct {
-	Resp string
+	Content string
 }

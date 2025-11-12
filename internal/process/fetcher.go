@@ -33,7 +33,7 @@ func (f *Fetcher) Fetch(respList chan model.FetchResp) {
 			for attempt := 1; attempt < f.Config.MaxRetries; attempt++ {
 				resp, err := doFetch(f.Config.RequestTimeout, task.Url)
 				if err == nil {
-					respList <- model.FetchResp{Resp: resp}
+					respList <- model.FetchResp{Content: resp}
 					break
 				}
 				time.Sleep(time.Second * time.Duration(attempt))

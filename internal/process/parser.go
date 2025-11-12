@@ -11,6 +11,7 @@ import (
 
 type Parser struct {
 	Config   *Config
+	Filter   *BloomFilter
 	TaskList chan model.FetchTask
 	RespList chan model.FetchResp
 }
@@ -23,7 +24,7 @@ func (p *Parser) Parse() {
 	for resp := range p.RespList {
 		<-sem
 		go func(resp model.FetchResp) {
-			doParse(p.TaskList, resp)
+			p.doParse(resp)
 			sem <- 1
 		}(resp)
 	}
@@ -31,8 +32,8 @@ func (p *Parser) Parse() {
 
 var titleReg = regexp.MustCompile(`<title>(.*?)</title>`)
 
-func doParse(taskList chan model.FetchTask, resp model.FetchResp) {
-	doc, err := goquery.NewDocumentFromReader(strings.NewReader(resp.Resp))
+func (p *Parser) doParse(resp model.FetchResp) {
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(resp.Content))
 	if err != nil {
 		return
 	}
@@ -47,13 +48,16 @@ func doParse(taskList chan model.FetchTask, resp model.FetchResp) {
 	var urls []string
 	doc.Find("a").Each(func(i int, s *goquery.Selection) {
 		if url, ok := s.Attr("url"); ok {
-			logger.Infof("Found url %s", url)
-			urls = append(urls, url)
+			if !p.Filter.Contains(url) {
+				logger.Infof("Found url %s", url)
+				p.Filter.Add(url)
+				urls = append(urls, url)
+			}
 		}
 	})
 	for _, url := range urls {
 		go func(url string) {
-			taskList <- model.FetchTask{Url: url}
+			p.TaskList <- model.FetchTask{Url: url}
 		}(url)
 	}
 }

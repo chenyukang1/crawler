@@ -10,9 +10,9 @@ func Start() {
 	taskList := make(chan model.FetchTask, 20)
 	respList := make(chan model.FetchResp, 100)
 
-	c := &process.Config{Concurrency: 20, MaxRetries: 3, RequestTimeout: time.Second * 2}
+	c := &process.Config{Concurrency: 20, MaxRetries: 3, RequestTimeout: time.Second * 10}
 	f := &process.Fetcher{Config: c, TaskList: taskList}
-	p := &process.Parser{Config: c, TaskList: taskList, RespList: respList}
+	p := &process.Parser{Config: c, Filter: process.NewBloomFilter(1024), TaskList: taskList, RespList: respList}
 	go f.Fetch(respList)
 	go p.Parse()
 
