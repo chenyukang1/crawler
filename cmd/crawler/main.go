@@ -7,5 +7,5 @@ import (
 
 func main() {
 	logger.Info("Start crawler...")
-	scheduler.Start()
+	scheduler.NewScheduler().Run()
 }

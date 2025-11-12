@@ -28,7 +28,6 @@ type Crawler struct {
 
 func (c *Crawler) Start() {
 	c.lock.Lock()
-	go c.Fetcher.Fetch()
 }
 
 func (c *Crawler) Stop() {

@@ -1,29 +1,51 @@
 package scheduler
 
 import (
-	"github.com/chenyukang1/crawler/internal/process"
-	"github.com/chenyukang1/crawler/pkg/model"
+	"sync"
 	"time"
 )
 
-func Start() {
-	taskList := make(chan model.FetchTask, 20)
-	respList := make(chan model.FetchResp, 100)
+type Scheduler struct {
+	pq      TaskQueue
+	in      chan CrawlTask // 生产者输入
+	out     chan CrawlTask // 分发给 worker
+	stopped chan struct{}
+	mu      sync.Mutex
+}
 
-	c := &process.Config{Concurrency: 20, MaxRetries: 3, RequestTimeout: time.Second * 10}
-	f := &process.Fetcher{Config: c, TaskList: taskList}
-	p := &process.Parser{Config: c, Filter: process.NewBloomFilter(1024), TaskList: taskList, RespList: respList}
-	go f.Fetch(respList)
-	go p.Parse()
-
-	tasks := []model.FetchTask{
-		{"https://m.douban.com/movie/"},
-		{"https://www.baidu.com"},
-		{"https://golang.org"},
+func NewScheduler() *Scheduler {
+	return &Scheduler{
+		pq:      queue,
+		in:      make(chan CrawlTask, 100),
+		out:     make(chan CrawlTask, 100),
+		stopped: make(chan struct{}),
 	}
-	for _, task := range tasks {
-		taskList <- task
-	}
+}
 
-	time.Sleep(time.Second * 30)
+func (s *Scheduler) Run() {
+	s.pq.Init()
+	for {
+		select {
+		case task := <-s.in:
+			s.mu.Lock()
+			s.pq.Push(task)
+			s.mu.Unlock()
+		default:
+			s.mu.Lock()
+			if s.pq.Len() > 0 {
+				task := s.pq.Pop()
+				s.mu.Unlock()
+				s.out <- task
+			} else {
+				s.mu.Unlock()
+				time.Sleep(10 * time.Millisecond) // 防止空转
+			}
+		}
+	}
+}
+
+func (s *Scheduler) Push(task CrawlTask) {
+	s.mu.Lock()
+	s.pq.Push(task)
+	s.mu.Unlock()
 }
