@@ -1,4 +1,4 @@
-package scheduler
+package tasks
 
 import (
 	"net/http"
@@ -22,3 +22,8 @@ type CrawlTask struct {
 
 	proxy string //当用户界面设置可使用代理IP时，自动设置代理
 }
+
+const (
+	DEFAULT_METHOD   = "GET"
+	DEFAULT_PostData = ""
+)

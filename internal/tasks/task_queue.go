@@ -1,8 +1,6 @@
-package scheduler
+package tasks
 
 import "container/heap"
-
-var queue = new(TaskQueueHeapWrapper)
 
 type TaskQueue interface {
 	Init()

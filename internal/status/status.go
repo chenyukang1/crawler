@@ -1,7 +1,8 @@
 package status
 
 const (
-	STOPPED = iota - 1
+	INITIAL = iota - 1
+	STOPPED
 	STOP
 	RUN
 	PAUSE

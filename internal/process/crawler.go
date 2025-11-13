@@ -1,33 +1,36 @@
 package process
 
 import (
+	"github.com/chenyukang1/crawler/internal/status"
+	"github.com/chenyukang1/crawler/internal/tasks"
 	"sync"
-	"time"
 )
 
-type Config struct {
-	Concurrency    int
-	MaxRetries     int
-	RequestTimeout time.Duration
-}
-
 type ICrawler interface {
-	Start()
+	Start(task tasks.CrawlTask, finish chan bool)
 	Stop()
-	CanStop()
+	CanStop() bool
 }
 
 type Crawler struct {
 	Fetcher *Fetcher
 	Parser  *Parser
-	Config  *Config
 
 	status int // 执行状态
 	lock   sync.RWMutex
 }
 
-func (c *Crawler) Start() {
+func NewCrawler() *Crawler {
+	return &Crawler{
+		Fetcher: nil,
+		Parser:  nil,
+		status:  status.INITIAL,
+	}
+}
+
+func (c *Crawler) Start(task tasks.CrawlTask, finish chan bool) {
 	c.lock.Lock()
+	c.status = status.RUN
 }
 
 func (c *Crawler) Stop() {
@@ -35,7 +38,7 @@ func (c *Crawler) Stop() {
 	panic("implement me")
 }
 
-func (c *Crawler) CanStop() {
+func (c *Crawler) CanStop() bool {
 	//TODO implement me
 	panic("implement me")
 }

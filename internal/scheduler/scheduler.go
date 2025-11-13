@@ -1,39 +1,47 @@
 package scheduler
 
 import (
+	"github.com/chenyukang1/crawler/internal/process"
+	"github.com/chenyukang1/crawler/internal/tasks"
 	"sync"
 	"time"
 )
 
+// Global 全局唯一实例
+var Global = NewScheduler(100)
+
 type Scheduler struct {
-	pq      TaskQueue
-	in      chan CrawlTask // 生产者输入
-	out     chan CrawlTask // 分发给 worker
+	queue   tasks.TaskQueue
+	workers *process.CrawlerPool
+	in      chan tasks.CrawlTask // 生产者输入
+	out     chan tasks.CrawlTask // 分发给 worker
 	stopped chan struct{}
 	mu      sync.Mutex
 }
 
-func NewScheduler() *Scheduler {
+func NewScheduler(buffer int) *Scheduler {
 	return &Scheduler{
-		pq:      queue,
-		in:      make(chan CrawlTask, 100),
-		out:     make(chan CrawlTask, 100),
+		queue:   new(tasks.TaskQueueHeapWrapper),
+		workers: process.NewCrawlerPool(10),
+		in:      make(chan tasks.CrawlTask, buffer),
+		out:     make(chan tasks.CrawlTask, buffer),
 		stopped: make(chan struct{}),
 	}
 }
 
 func (s *Scheduler) Run() {
-	s.pq.Init()
+	s.queue.Init()
+	go s.consume()
 	for {
 		select {
 		case task := <-s.in:
 			s.mu.Lock()
-			s.pq.Push(task)
+			s.queue.Push(task)
 			s.mu.Unlock()
 		default:
 			s.mu.Lock()
-			if s.pq.Len() > 0 {
-				task := s.pq.Pop()
+			if s.queue.Len() > 0 {
+				task := s.queue.Pop()
 				s.mu.Unlock()
 				s.out <- task
 			} else {
@@ -44,8 +52,21 @@ func (s *Scheduler) Run() {
 	}
 }
 
-func (s *Scheduler) Push(task CrawlTask) {
+func (s *Scheduler) Submit(task tasks.CrawlTask) {
 	s.mu.Lock()
-	s.pq.Push(task)
-	s.mu.Unlock()
+	defer s.mu.Unlock()
+	s.queue.Push(task)
+}
+
+func (s *Scheduler) consume() {
+	for {
+		select {
+		case task := <-s.out:
+			crawler := s.workers.Alloc()
+			finish := make(chan bool, 1)
+			go crawler.Start(task, finish)
+			<-finish
+			s.workers.Free(crawler)
+		}
+	}
 }
