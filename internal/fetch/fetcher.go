@@ -1,18 +1,20 @@
-package process
+package fetch
 
 import (
 	"compress/gzip"
-	"github.com/chenyukang1/crawler/pkg/model"
 	"io"
 	"log"
 	"math/rand"
 	"net/http"
+	"net/http/cookiejar"
 	"time"
 )
 
 type Fetcher struct {
-	Config   *Config
-	TaskList chan model.FetchTask
+	jar *cookiejar.Jar
+}
+
+type Request struct {
 }
 
 var userAgents = []string{
@@ -22,13 +24,21 @@ var userAgents = []string{
 	"Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
 }
 
-func (f *Fetcher) Fetch(respList chan model.FetchResp) {
-	sem := make(chan int, f.Config.Concurrency)
-	for i := 0; i < cap(sem); i++ {
-		sem <- 1
+var httpClient *http.Client
+
+func (f *Fetcher) Init() {
+	f.jar, _ = cookiejar.New(nil)
+	httpClient = &http.Client{
+		Jar: f.jar,
+		Transport: &http.Transport{
+			MaxIdleConns:    100,
+			IdleConnTimeout: 90 * time.Second,
+		},
 	}
+}
+
+func (f *Fetcher) Fetch(respList chan model.FetchResp) {
 	for task := range f.TaskList {
-		<-sem
 		go func(Task model.FetchTask) {
 			for attempt := 1; attempt < f.Config.MaxRetries; attempt++ {
 				resp, err := doFetch(f.Config.RequestTimeout, task.Url)
@@ -38,7 +48,6 @@ func (f *Fetcher) Fetch(respList chan model.FetchResp) {
 				}
 				time.Sleep(time.Second * time.Duration(attempt))
 			}
-			sem <- 1
 		}(task)
 	}
 }

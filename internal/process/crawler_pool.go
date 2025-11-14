@@ -45,3 +45,8 @@ func (p *CrawlerPool) Free(crawler *Crawler) {
 	}
 	p.pool <- crawler
 }
+
+// Cores 核心爬虫数
+func (p *CrawlerPool) Cores() int {
+	return p.capacity << 1
+}

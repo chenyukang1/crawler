@@ -1,32 +1,72 @@
 package tasks
 
-import "container/heap"
+import (
+	"container/heap"
+	"sync"
+	"time"
+)
+
+// GlobalQueue 全局唯一实例
+var GlobalQueue = new(TaskQueueHeapWrapper)
 
 type TaskQueue interface {
 	Init()
 	Push(CrawlTask)
-	Pop() CrawlTask
+	Pop() *CrawlTask
 	Len() int
 }
 
+// TaskQueueHeapWrapper 基于最小堆的优先级队列，线程安全
 type TaskQueueHeapWrapper struct {
 	heap *TaskQueueHeap
+	in   chan CrawlTask // 生产者输入
+	out  chan CrawlTask // 分发给 worker
+	mu   sync.RWMutex
 }
 
-func (t TaskQueueHeapWrapper) Init() {
+func (t *TaskQueueHeapWrapper) Init() {
 	heap.Init(t.heap)
+	go t.watchQueue()
 }
 
-func (t TaskQueueHeapWrapper) Push(task CrawlTask) {
-	heap.Push(t.heap, task)
+func (t *TaskQueueHeapWrapper) Push(task CrawlTask) {
+	t.in <- task
 }
 
-func (t TaskQueueHeapWrapper) Pop() CrawlTask {
-	return heap.Pop(t.heap).(CrawlTask)
+func (t *TaskQueueHeapWrapper) Pop() *CrawlTask {
+	select {
+	case task := <-t.out:
+		return &task
+	case <-time.After(time.Second):
+		return nil
+	}
 }
 
-func (t TaskQueueHeapWrapper) Len() int {
+func (t *TaskQueueHeapWrapper) Len() int {
+	t.mu.RLock()
+	defer t.mu.Unlock()
 	return t.heap.Len()
+}
+
+func (t *TaskQueueHeapWrapper) watchQueue() {
+	for {
+		select {
+		case task := <-t.in:
+			t.mu.Lock()
+			heap.Push(t.heap, task)
+			t.mu.Unlock()
+		default:
+			t.mu.Lock()
+			if t.Len() > 0 {
+				task := heap.Pop(t.heap).(CrawlTask)
+				t.out <- task
+				t.mu.Unlock()
+			} else {
+				t.mu.Unlock()
+				time.Sleep(10 * time.Millisecond) // 防止空转
+			}
+		}
+	}
 }
 
 type TaskQueueHeap []*CrawlTask

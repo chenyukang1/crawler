@@ -1,19 +1,20 @@
 package process
 
 import (
+	"github.com/chenyukang1/crawler/internal/fetch"
 	"github.com/chenyukang1/crawler/internal/status"
 	"github.com/chenyukang1/crawler/internal/tasks"
 	"sync"
 )
 
 type ICrawler interface {
-	Start(task tasks.CrawlTask, finish chan bool)
+	Start()
 	Stop()
 	CanStop() bool
 }
 
 type Crawler struct {
-	Fetcher *Fetcher
+	Fetcher *fetch.Fetcher
 	Parser  *Parser
 
 	status int // 执行状态
@@ -28,9 +29,14 @@ func NewCrawler() *Crawler {
 	}
 }
 
-func (c *Crawler) Start(task tasks.CrawlTask, finish chan bool) {
+func (c *Crawler) Start() {
 	c.lock.Lock()
 	c.status = status.RUN
+	c.lock.Unlock()
+	task := tasks.GlobalQueue.Pop()
+	if task == nil {
+		return
+	}
 }
 
 func (c *Crawler) Stop() {
@@ -39,6 +45,5 @@ func (c *Crawler) Stop() {
 }
 
 func (c *Crawler) CanStop() bool {
-	//TODO implement me
-	panic("implement me")
+	return true
 }
