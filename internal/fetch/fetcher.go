@@ -2,54 +2,108 @@ package fetch
 
 import (
 	"compress/gzip"
+	"context"
+	"crypto/tls"
+	"errors"
+	"github.com/chenyukang1/crawler/internal/logger"
 	"io"
 	"log"
 	"math/rand"
+	"net"
 	"net/http"
 	"net/http/cookiejar"
+	"strconv"
+	"strings"
 	"time"
 )
 
 type Fetcher struct {
-	jar *cookiejar.Jar
+	CookieJar *cookiejar.Jar
 }
 
-type Request struct {
+func (f *Fetcher) Fetch(ctx context.Context, req *Request) (resp *http.Response, err error) {
+	client, err := f.buildHttpClient(req)
+	if err != nil {
+		logger.Errorf("create request for %s fail: %v", req.url, err)
+		return nil, err
+	}
+
+	request, err := http.NewRequestWithContext(ctx, req.method, req.url.String(), req.body)
+	request.Header = req.header
+
+	res, err := req.retry.DoRetry(ctx, func() (any, error) {
+		return client.Do(request)
+	})
+	if err != nil {
+		logger.Errorf("get from url %s fail: %v", req.url, err)
+		return nil, err
+	}
+	resp = res.(*http.Response)
+	return
 }
 
-var userAgents = []string{
-	"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-	"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15",
-	"Mozilla/5.0 (X11; Linux x86_64) Gecko/20100101 Firefox/120.0",
-	"Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
-}
+func (f *Fetcher) buildHttpClient(req *Request) (*http.Client, error) {
+	client := &http.Client{}
 
-var httpClient *http.Client
+	if req.enableCookie {
+		client.Jar = f.CookieJar
+	}
 
-func (f *Fetcher) Init() {
-	f.jar, _ = cookiejar.New(nil)
-	httpClient = &http.Client{
-		Jar: f.jar,
-		Transport: &http.Transport{
-			MaxIdleConns:    100,
-			IdleConnTimeout: 90 * time.Second,
+	client.CheckRedirect = func(q *http.Request, via []*http.Request) error {
+		if req.redirectTimes < 0 {
+			return nil
+		}
+		if req.redirectTimes == 0 {
+			return errors.New("no allow redirects")
+		}
+		if len(via) >= req.redirectTimes {
+			return errors.New("stop after redirects " + strconv.Itoa(req.redirectTimes))
+		}
+		return nil
+	}
+
+	transport := &http.Transport{
+		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			var (
+				conn net.Conn
+				err  error
+			)
+			ipPort, ok := dnsCache.Load(addr)
+			if ok {
+				defer func() {
+					if err != nil {
+						dnsCache.Delete(addr)
+					}
+				}()
+			} else {
+				ipPort = addr
+				if err == nil {
+					dnsCache.Store(addr, conn.RemoteAddr().String())
+				}
+			}
+			conn, err = net.DialTimeout(network, ipPort, req.dialTimeout)
+			if err != nil {
+				return nil, err
+			}
+			if req.connTimeout > 0 {
+				err = conn.SetDeadline(time.Now().Add(req.connTimeout))
+				if err != nil {
+					return nil, err
+				}
+			}
+			return conn, nil
 		},
 	}
-}
-
-func (f *Fetcher) Fetch(respList chan model.FetchResp) {
-	for task := range f.TaskList {
-		go func(Task model.FetchTask) {
-			for attempt := 1; attempt < f.Config.MaxRetries; attempt++ {
-				resp, err := doFetch(f.Config.RequestTimeout, task.Url)
-				if err == nil {
-					respList <- model.FetchResp{Content: resp}
-					break
-				}
-				time.Sleep(time.Second * time.Duration(attempt))
-			}
-		}(task)
+	if req.proxy != nil {
+		transport.Proxy = http.ProxyURL(req.proxy)
 	}
+	if strings.ToLower(req.url.Scheme) == "https" {
+		transport.TLSClientConfig = &tls.Config{RootCAs: nil, InsecureSkipVerify: true}
+		transport.DisableCompression = true
+	}
+	client.Transport = transport
+
+	return client, nil
 }
 
 func doFetch(timeout time.Duration, url string) (string, error) {
