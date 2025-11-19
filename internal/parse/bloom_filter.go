@@ -1,4 +1,4 @@
-package process
+package parse
 
 type BloomFilter struct {
 	size   uint

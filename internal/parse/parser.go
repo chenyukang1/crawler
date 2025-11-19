@@ -1,22 +1,23 @@
-package process
+package parse
 
 import (
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/chenyukang1/crawler/internal/logger"
-	"github.com/chenyukang1/crawler/pkg/model"
+	"net/http"
 	"regexp"
 	"strings"
 )
 
 type Parser struct {
-	Config   *Config
-	Filter   *BloomFilter
-	TaskList chan model.FetchTask
-	RespList chan model.FetchResp
+	Filter *BloomFilter
 }
 
-func (p *Parser) Parse() {
+var Default = &Parser{
+	Filter: new(BloomFilter),
+}
+
+func (p *Parser) Parse(response *http.Response) {
 	sem := make(chan int, p.Config.Concurrency)
 	for i := 0; i < cap(sem); i++ {
 		sem <- 1

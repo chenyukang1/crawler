@@ -1,14 +1,14 @@
 package fetch
 
 import (
+	"compress/flate"
 	"compress/gzip"
+	"compress/zlib"
 	"context"
 	"crypto/tls"
 	"errors"
 	"github.com/chenyukang1/crawler/internal/logger"
 	"io"
-	"log"
-	"math/rand"
 	"net"
 	"net/http"
 	"net/http/cookiejar"
@@ -20,6 +20,13 @@ import (
 type Fetcher struct {
 	CookieJar *cookiejar.Jar
 }
+
+var (
+	jar, _  = cookiejar.New(nil)
+	Default = &Fetcher{
+		CookieJar: jar,
+	}
+)
 
 func (f *Fetcher) Fetch(ctx context.Context, req *Request) (resp *http.Response, err error) {
 	client, err := f.buildHttpClient(req)
@@ -39,6 +46,29 @@ func (f *Fetcher) Fetch(ctx context.Context, req *Request) (resp *http.Response,
 		return nil, err
 	}
 	resp = res.(*http.Response)
+
+	switch resp.Header.Get("Content-Encoding") {
+	case "gzip":
+		var gzipReader *gzip.Reader
+		gzipReader, err = gzip.NewReader(resp.Body)
+		if err != nil {
+			logger.Errorf("gzip read body from url %s fail: %v", req.url, err)
+			return nil, err
+		}
+		resp.Body = gzipReader
+
+	case "deflate":
+		resp.Body = flate.NewReader(resp.Body)
+
+	case "zlib":
+		var readCloser io.ReadCloser
+		readCloser, err = zlib.NewReader(resp.Body)
+		if err != nil {
+			logger.Errorf("zlib read body from url %s fail: %v", req.url, err)
+			return nil, err
+		}
+		resp.Body = readCloser
+	}
 	return
 }
 
@@ -104,44 +134,4 @@ func (f *Fetcher) buildHttpClient(req *Request) (*http.Client, error) {
 	client.Transport = transport
 
 	return client, nil
-}
-
-func doFetch(timeout time.Duration, url string) (string, error) {
-	client := &http.Client{Timeout: timeout}
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		log.Printf("create request for %s fail: %v", url, err)
-		return "", err
-	}
-
-	req.Header.Set("User-Agent", userAgents[rand.Intn(len(userAgents))])
-	req.Header.Set("Accept-Language", "zh-CN,zh;q=0.9")
-	req.Header.Set("Accept-Encoding", "gzip")
-
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Printf("get from url %s fail: %v", url, err)
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	body := resp.Body
-	if resp.Header.Get("Content-Encoding") == "gzip" {
-		gz, err := gzip.NewReader(resp.Body)
-		if err != nil {
-			log.Printf("gzip decode fail from %s: %v", url, err)
-			return "", err
-		}
-		defer gz.Close()
-		body = gz
-	}
-
-	bytes, err := io.ReadAll(body)
-	if err != nil {
-		log.Printf("read body from url %s fail: %v", url, err)
-		return "", err
-	}
-
-	s := string(bytes)
-	return s, nil
 }

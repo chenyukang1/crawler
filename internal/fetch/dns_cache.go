@@ -2,7 +2,6 @@ package fetch
 
 import (
 	"sync"
-	"sync/atomic"
 )
 
 var dnsCache = &DnsCache{
@@ -11,10 +10,6 @@ var dnsCache = &DnsCache{
 
 type DnsCache struct {
 	m *sync.Map
-}
-
-type AtomicMap[E any] struct {
-	v atomic.Value
 }
 
 func (c *DnsCache) Load(key string) (string, bool) {

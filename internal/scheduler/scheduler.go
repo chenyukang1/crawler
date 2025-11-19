@@ -31,9 +31,11 @@ func (s *Scheduler) Run() {
 			s.wg.Add(1)
 			crawler := s.crawlers.Alloc()
 			go func() {
+				defer func() {
+					s.crawlers.Free(crawler)
+				}()
 				crawler.Start()
 			}()
-			s.crawlers.Free(crawler)
 		}
 	}()
 	s.wg.Wait()

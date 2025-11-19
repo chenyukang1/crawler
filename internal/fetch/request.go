@@ -2,9 +2,12 @@ package fetch
 
 import (
 	"github.com/chenyukang1/crawler/internal/tasks"
+	"github.com/chenyukang1/crawler/pkg/utils"
 	"io"
+	"math/rand"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -29,6 +32,31 @@ var userAgents = []string{
 	"Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
 }
 
-func BuildRequest(task *tasks.CrawlTask) *Request {
-	return nil
+func BuildRequest(task *tasks.CrawlTask) (req *Request, err error) {
+	req = &Request{}
+	req.url, err = utils.UrlEncode(task.Url)
+
+	req.header = task.Header
+	if req.header == nil {
+		req.header = make(http.Header)
+	}
+	switch method := strings.ToUpper(task.Method); method {
+	case "GET":
+		req.method = method
+	case "POST":
+		req.header.Add("Content-Type", "application/x-www-form-urlencoded")
+		req.body = strings.NewReader(task.PostData)
+	default:
+		req.method = "GET"
+	}
+	req.header.Add("User-Agent", userAgents[rand.Intn(len(userAgents))])
+
+	req.connTimeout = task.ConnTimeout
+	req.dialTimeout = task.DialTimeout
+	req.redirectTimes = task.RedirectTimes
+	req.enableCookie = task.EnableCookie
+	req.reloadable = task.Reloadable
+	req.retry = task.Retry
+
+	return
 }
