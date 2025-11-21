@@ -17,7 +17,7 @@ var Default = &Parser{
 	Filter: new(BloomFilter),
 }
 
-func (p *Parser) Parse(response *http.Response) {
+func (p *Parser) Parse(response *http.Response) *Result {
 	sem := make(chan int, p.Config.Concurrency)
 	for i := 0; i < cap(sem); i++ {
 		sem <- 1

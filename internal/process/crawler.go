@@ -21,32 +21,37 @@ type ICrawler interface {
 }
 
 type Crawler struct {
-	Fetcher   *fetch.Fetcher
-	Parser    *parse.Parser
-	Collector *collect.Collector
+	Collector collect.Collector
 
-	status      int // 执行状态
-	idleSeconds int // 空闲时间，超过被回收
-	lock        sync.RWMutex
+	fetcher  *fetch.Fetcher
+	parser   *parse.Parser
+	status   int           // 执行状态
+	finish   chan int      //结束channel
+	idleTime time.Duration // 空闲时间，超过被回收
+	lock     sync.RWMutex
 }
 
 func NewCrawler() *Crawler {
 	return &Crawler{
-		Fetcher: fetch.Default,
-		Parser:  parse.Default,
-		status:  status.INITIAL,
+		Collector: collect.Log,
+		fetcher:   fetch.Default,
+		parser:    parse.Default,
+		status:    status.INITIAL,
+		finish:    make(chan int, 1),
+		idleTime:  60 * time.Second,
 	}
 }
 
 func (c *Crawler) Start() {
 	c.setStatus(status.RUN)
 
-	finish := make(chan int, 1)
+	// 开始收集数据
+	c.Collector.Pipeline()
 	go func() {
 		c.run()
-		finish <- 1
+		c.finish <- 1
 	}()
-	<-finish
+	<-c.finish
 }
 
 func (c *Crawler) Pause() {
@@ -58,6 +63,8 @@ func (c *Crawler) Stop() {
 		return
 	}
 	if c.CanStop() {
+		c.Collector.Stop()
+		close(c.finish)
 		c.setStatus(status.STOP)
 	}
 }
@@ -74,9 +81,9 @@ func (c *Crawler) Status() int {
 }
 
 func (c *Crawler) run() {
-	idleTime := 0
+	idled := 0 * time.Second
 loop:
-	for idleTime < c.idleSeconds {
+	for idled < c.idleTime {
 		if c.isPause() {
 			time.Sleep(time.Second)
 			goto loop
@@ -84,7 +91,7 @@ loop:
 		task := tasks.GlobalQueue.Pop()
 		if task == nil {
 			time.Sleep(time.Second)
-			idleTime++
+			idled++
 			continue
 		}
 		req, err := fetch.BuildRequest(task)
@@ -93,13 +100,16 @@ loop:
 			return
 		}
 		ctx := context.Background()
-		resp, err := c.Fetcher.Fetch(ctx, req)
+		resp, err := c.fetcher.Fetch(ctx, req)
 		if err != nil {
 			logger.Errorf("fetch url %s fail %v ", task.Url, err)
 			return
 		}
-		c.Parser.Parse(resp)
-		idleTime = 0
+		result := c.parser.Parse(resp)
+		for _, cell := range result.GetStructuredData() {
+			c.Collector.Push(cell)
+		}
+		idled = 0
 	}
 }
 

@@ -2,26 +2,42 @@ package collect
 
 type Collector interface {
 	Pipeline()
+	Push(cell DataCell)
+	Stop()
 }
 
 type DataCell map[string]any
 
 type BaseCollector struct {
-	DataCells  chan DataCell
-	dataBatch  []DataCell //分批输出结果缓存
-	batchCount uint64     //分批数
+	DataCells    chan DataCell
+	ProcessBatch func([]DataCell)
+
+	dataBatch []DataCell //分批输出结果缓存
+	batchSize int        //分批大小
+	count     int        //分批数
+	finish    chan bool  //停止channel
 }
 
 func (c *BaseCollector) Pipeline() {
-	finish := make(chan bool, 1)
 	go func() {
 		for cell := range c.DataCells {
 			c.dataBatch = append(c.dataBatch, cell)
-			if len(c.dataBatch) == 10 {
-				break
+			if len(c.dataBatch) == c.batchSize {
+				c.ProcessBatch(c.dataBatch)
+				c.count++
 			}
-			c.batchCount++
 		}
+		c.ProcessBatch(c.dataBatch)
+		c.count++
+		c.finish <- true
 	}()
-	<-finish
+	<-c.finish
+}
+
+func (c *BaseCollector) Push(cell DataCell) {
+	c.DataCells <- cell
+}
+
+func (c *BaseCollector) Stop() {
+	close(c.finish)
 }
