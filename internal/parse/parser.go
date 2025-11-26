@@ -1,6 +1,7 @@
 package parse
 
 import (
+	"context"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/chenyukang1/crawler/internal/logger"
@@ -17,7 +18,7 @@ var Default = &Parser{
 	Filter: new(BloomFilter),
 }
 
-func (p *Parser) Parse(response *http.Response) *Result {
+func (p *Parser) Parse(request *http.Request, response *http.Response) *context.Context {
 	sem := make(chan int, p.Config.Concurrency)
 	for i := 0; i < cap(sem); i++ {
 		sem <- 1

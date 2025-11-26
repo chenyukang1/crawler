@@ -1,9 +1,8 @@
-package process
+package parse
 
 import (
 	"fmt"
 	"github.com/chenyukang1/crawler/internal/logger"
-	"github.com/chenyukang1/crawler/internal/parse"
 	"github.com/temoto/robotstxt"
 	"net/http"
 	"net/url"
@@ -15,7 +14,7 @@ type Filter interface {
 }
 
 type DefaultFilter struct {
-	bloomFilter *parse.BloomFilter
+	bloomFilter *BloomFilter
 }
 
 func (f *DefaultFilter) DoFilter(url string) bool {

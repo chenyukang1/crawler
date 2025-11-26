@@ -8,6 +8,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"github.com/chenyukang1/crawler/internal/logger"
+	"github.com/chenyukang1/crawler/internal/spider"
 	"io"
 	"net"
 	"net/http"
@@ -28,11 +29,11 @@ var (
 	}
 )
 
-func (f *Fetcher) Fetch(ctx context.Context, req *Request) (resp *http.Response, err error) {
+func (f *Fetcher) Fetch(ctx context.Context, req *Request, c *spider.Context) (err error) {
 	client, err := f.buildHttpClient(req)
 	if err != nil {
 		logger.Errorf("create request for %s fail: %v", req.url, err)
-		return nil, err
+		return
 	}
 
 	request, err := http.NewRequestWithContext(ctx, req.method, req.url.String(), req.body)
@@ -43,9 +44,11 @@ func (f *Fetcher) Fetch(ctx context.Context, req *Request) (resp *http.Response,
 	})
 	if err != nil {
 		logger.Errorf("get from url %s fail: %v", req.url, err)
-		return nil, err
+		return
 	}
-	resp = res.(*http.Response)
+	resp := res.(*http.Response)
+	c.Request = request
+	c.Response = resp
 
 	switch resp.Header.Get("Content-Encoding") {
 	case "gzip":
@@ -53,7 +56,7 @@ func (f *Fetcher) Fetch(ctx context.Context, req *Request) (resp *http.Response,
 		gzipReader, err = gzip.NewReader(resp.Body)
 		if err != nil {
 			logger.Errorf("gzip read body from url %s fail: %v", req.url, err)
-			return nil, err
+			return
 		}
 		resp.Body = gzipReader
 
@@ -65,7 +68,7 @@ func (f *Fetcher) Fetch(ctx context.Context, req *Request) (resp *http.Response,
 		readCloser, err = zlib.NewReader(resp.Body)
 		if err != nil {
 			logger.Errorf("zlib read body from url %s fail: %v", req.url, err)
-			return nil, err
+			return
 		}
 		resp.Body = readCloser
 	}

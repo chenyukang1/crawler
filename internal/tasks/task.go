@@ -17,6 +17,7 @@ type CrawlTask struct {
 	RedirectTimes int           //重定向的最大次数，-1为不限制次数
 	Priority      int           //指定调度优先级，默认为0（最小优先级为0）
 	Reloadable    bool          //是否允许重复该链接下载
+	RuleName      string        //解析规则名称
 
 	proxy string //当用户界面设置可使用代理IP时，自动设置代理
 }
