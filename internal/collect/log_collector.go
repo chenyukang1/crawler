@@ -1,6 +1,8 @@
 package collect
 
-import "github.com/chenyukang1/crawler/internal/logger"
+import (
+	"github.com/chenyukang1/crawler/pkg/log"
+)
 
 type LogCollector struct {
 	base *BaseCollector
@@ -12,7 +14,7 @@ var Log = &LogCollector{
 		ProcessBatch: func(batch []DataCell) {
 			for _, cell := range batch {
 				for k, v := range cell {
-					logger.Infof("collect %s : %s\n", k, v)
+					log.Infof("collect %s : %s\n", k, v)
 				}
 			}
 		},

@@ -1,13 +1,12 @@
 package main
 
 import (
-	"github.com/chenyukang1/crawler/internal/logger"
-	"github.com/chenyukang1/crawler/internal/scheduler"
-	"github.com/chenyukang1/crawler/internal/tasks"
+	"github.com/chenyukang1/crawler/internal/process"
+	"github.com/chenyukang1/crawler/pkg/log"
 )
 
 func main() {
-	logger.Info("Start crawler...")
-	scheduler.Global.Run()
-	scheduler.Global.Submit(tasks.DefaultCrawlTask("https://m.douban.com"))
+	log.Info("Start crawler...")
+	process.GlobalScheduler.Run()
+	process.GlobalScheduler.Submit(process.DefaultCrawlTask("https://m.douban.com"))
 }

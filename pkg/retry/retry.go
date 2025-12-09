@@ -1,9 +1,9 @@
-package tasks
+package retry
 
 import (
 	"context"
 	"errors"
-	"github.com/chenyukang1/crawler/internal/logger"
+	"github.com/chenyukang1/crawler/pkg/log"
 	"math"
 	"time"
 )
@@ -24,7 +24,7 @@ func (f *FixedRetry) DoRetry(ctx context.Context, logic Logic) (any, error) {
 		if res, err := logic(); err == nil {
 			return res, nil
 		}
-		logger.Errorf("fail at %d, retrying...", i)
+		log.Errorf("fail at %d, retrying...", i)
 		select {
 		case <-ctx.Done():
 			return nil, ctx.Err()
@@ -44,7 +44,7 @@ func (f *BackoffRetry) DoRetry(ctx context.Context, logic Logic) (any, error) {
 		if res, err := logic(); err == nil {
 			return res, nil
 		}
-		logger.Errorf("fail at %d, retrying...", i)
+		log.Errorf("fail at %d, retrying...", i)
 		select {
 		case <-ctx.Done():
 			return nil, ctx.Err()

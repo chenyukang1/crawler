@@ -5,7 +5,7 @@ import (
 	"errors"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/chenyukang1/crawler/internal/collect"
-	"github.com/chenyukang1/crawler/internal/logger"
+	"github.com/chenyukang1/crawler/pkg/log"
 	"golang.org/x/net/html/charset"
 	"io"
 	"io/ioutil"
@@ -27,7 +27,7 @@ type Context struct {
 
 type RuleFunc func(ctx *Context)
 
-func (c *Context) Parse(ruleName string) error {
+func (c *Context) Rule(ruleName string) error {
 	if ruleName == "" {
 		ruleName = c.Spider.EntryRule
 	}
@@ -41,7 +41,7 @@ func (c *Context) Parse(ruleName string) error {
 func (c *Context) GetHtml() ([]byte, error) {
 	if c.html == nil {
 		if err := c.parseHtml(); err != nil {
-			logger.Errorf("parse html from %s fail %v", c.Url, err)
+			log.Errorf("filter html from %s fail %v", c.Url, err)
 			return nil, err
 		}
 	}
@@ -53,12 +53,12 @@ func (c *Context) GetDom() (dom *goquery.Document, err error) {
 		var html []byte
 		html, err = c.GetHtml()
 		if err != nil {
-			logger.Errorf("parse dom from %s fail %v", c.Url, err)
+			log.Errorf("filter dom from %s fail %v", c.Url, err)
 			return nil, err
 		}
 		dom, err = goquery.NewDocumentFromReader(bytes.NewReader(html))
 		if err != nil {
-			logger.Errorf("parse dom from %s fail %v", html, err)
+			log.Errorf("filter dom from %s fail %v", html, err)
 			return nil, err
 		}
 		return

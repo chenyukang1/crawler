@@ -1,8 +1,8 @@
-package parse
+package filter
 
 import (
 	"fmt"
-	"github.com/chenyukang1/crawler/internal/logger"
+	"github.com/chenyukang1/crawler/pkg/log"
 	"github.com/temoto/robotstxt"
 	"net/http"
 	"net/url"
@@ -17,6 +17,8 @@ type DefaultFilter struct {
 	bloomFilter *BloomFilter
 }
 
+var GlobalFilter = &DefaultFilter{bloomFilter: NewBloomFilter(1024)}
+
 func (f *DefaultFilter) DoFilter(url string) bool {
 	if f.bloomFilter.Contains(url) {
 		return false
@@ -28,13 +30,13 @@ func (f *DefaultFilter) DoFilter(url string) bool {
 func (f *DefaultFilter) CanCrawl(rawURL string) bool {
 	u, err := url.Parse(rawURL)
 	if err != nil {
-		logger.Errorf("非法的URL!!! %s", rawURL)
+		log.Errorf("非法的URL!!! %s", rawURL)
 		return false
 	}
 	robotsURL := fmt.Sprintf("%s://%s/robots.txt", u.Scheme, u.Host)
 	resp, err := http.Get(robotsURL)
 	if err != nil {
-		logger.Errorf("robots URL访问失败!!! %v", err)
+		log.Errorf("robots URL访问失败!!! %v", err)
 		// 无法访问robots.txt，默认允许
 		return true
 	}
@@ -45,7 +47,7 @@ func (f *DefaultFilter) CanCrawl(rawURL string) bool {
 	}
 	data, err := robotstxt.FromResponse(resp)
 	if err != nil {
-		logger.Errorf("robots.txt 规则解析失败!!! %v", err)
+		log.Errorf("robots.txt 规则解析失败!!! %v", err)
 		return true
 	}
 	group := data.FindGroup("*")
