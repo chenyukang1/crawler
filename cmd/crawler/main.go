@@ -8,5 +8,5 @@ import (
 func main() {
 	log.Info("Start crawler...")
 	process.GlobalScheduler.Run()
-	process.GlobalScheduler.Submit(process.DefaultCrawlTask("https://m.douban.com"))
+	//process.GlobalScheduler.Submit(process.DefaultCrawlTask("https://m.douban.com"))
 }

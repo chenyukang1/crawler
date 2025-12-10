@@ -5,29 +5,27 @@ import (
 	"time"
 )
 
-// GlobalQueue 全局唯一实例
-var GlobalQueue = NewTaskQueue()
-
 type TaskQueue interface {
 	Init()
+	Chan() chan *CrawlTask
 	Push(*CrawlTask)
 	Pop() *CrawlTask
 }
 
 // TaskQueueHeapWrapper 基于最小堆的优先级队列，线程安全
 type TaskQueueHeapWrapper struct {
-	heap *TaskQueueHeap
 	in   chan *CrawlTask // 生产者输入
 	out  chan *CrawlTask // 分发给 worker
-	stop chan struct{}   // 停止命令
+	heap *TaskQueueHeap
+	stop chan struct{} // 停止命令
 }
 
 func NewTaskQueue() TaskQueue {
 	taskHeap := make(TaskQueueHeap, 0)
 	return &TaskQueueHeapWrapper{
-		heap: &taskHeap,
 		in:   make(chan *CrawlTask),
 		out:  make(chan *CrawlTask),
+		heap: &taskHeap,
 		stop: make(chan struct{}),
 	}
 }
@@ -35,6 +33,10 @@ func NewTaskQueue() TaskQueue {
 func (t *TaskQueueHeapWrapper) Init() {
 	heap.Init(t.heap)
 	go t.watchQueue()
+}
+
+func (t *TaskQueueHeapWrapper) Chan() chan *CrawlTask {
+	return t.out
 }
 
 func (t *TaskQueueHeapWrapper) Push(task *CrawlTask) {

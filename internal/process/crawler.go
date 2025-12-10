@@ -28,12 +28,12 @@ type ICrawler interface {
 type Crawler struct {
 	Collector collect.Collector
 
-	spider   *spider.Spider // 解析规则
+	spider   *spider.Spider //解析规则
 	fetcher  *fetch.Fetcher
 	filter   filter.Filter
-	status   int           // 执行状态
+	status   int           //执行状态
 	finish   chan int      //结束channel
-	idleTime time.Duration // 空闲时间，超过被回收
+	idleTime time.Duration //空闲时间，超过被回收
 	lock     sync.RWMutex
 }
 
@@ -49,6 +49,7 @@ type CrawlTask struct {
 	RedirectTimes int           //重定向的最大次数，-1为不限制次数
 	Priority      int           //指定调度优先级，默认为0（最小优先级为0）
 	Reloadable    bool          //是否允许重复该链接下载
+	SpiderName    string        //spider名称
 	RuleName      string        //解析规则名称
 
 	proxy string //当用户界面设置可使用代理IP时，自动设置代理
@@ -65,7 +66,7 @@ const (
 	DEFAULT_METHOD = "GET"
 )
 
-func DefaultCrawlTask(url string) *CrawlTask {
+func DefaultCrawlTask(url string, spider string, rule string) *CrawlTask {
 	return &CrawlTask{
 		Url:         url,
 		Method:      DEFAULT_METHOD,
@@ -78,6 +79,8 @@ func DefaultCrawlTask(url string) *CrawlTask {
 		RedirectTimes: -1,
 		Priority:      0,
 		Reloadable:    false,
+		SpiderName:    spider,
+		RuleName:      rule,
 	}
 }
 
@@ -109,9 +112,10 @@ func (c *CrawlTask) BuildRequest() (req *fetch.Request, err error) {
 	return
 }
 
-func NewCrawler() *Crawler {
+func NewCrawler(spider *spider.Spider) *Crawler {
 	return &Crawler{
 		Collector: collect.Log,
+		spider:    spider,
 		fetcher:   fetch.Default,
 		filter:    filter.GlobalFilter,
 		status:    status.INITIAL,
@@ -124,7 +128,7 @@ func (c *Crawler) Start() {
 	c.setStatus(status.RUN)
 
 	// 开始收集数据
-	c.Collector.Pipeline()
+	go c.Collector.Pipeline()
 	go func() {
 		c.run()
 		c.finish <- 1
@@ -155,7 +159,7 @@ func (c *Crawler) CanStop() bool {
 func (c *Crawler) Status() int {
 	c.lock.RLock()
 	s := c.status
-	c.lock.Unlock()
+	c.lock.RUnlock()
 	return s
 }
 
@@ -173,7 +177,7 @@ loop:
 			request  *http.Request
 			response *http.Response
 		)
-		task = GlobalQueue.Pop()
+		task = GlobalScheduler.Fetch(c.spider.Name)
 		if task == nil {
 			time.Sleep(time.Second)
 			idled++

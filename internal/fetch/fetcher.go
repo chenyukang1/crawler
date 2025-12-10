@@ -48,11 +48,14 @@ func (f *Fetcher) Fetch(ctx context.Context, req *Request) (request *http.Reques
 	var client *http.Client
 	client, err = f.buildHttpClient(req)
 	if err != nil {
-		log.Errorf("create request for %s fail: %v", req.Url, err)
+		log.Errorf("create http client for %s fail: %v", req.Url, err)
 		return
 	}
 
 	request, err = http.NewRequestWithContext(ctx, req.Method, req.Url.String(), req.Body)
+	if err != nil {
+		log.Errorf("create request for %s fail: %v", req.Url, err)
+	}
 	request.Header = req.Header
 
 	res, err := req.Retry.DoRetry(ctx, func() (any, error) {
@@ -124,9 +127,11 @@ func (f *Fetcher) buildHttpClient(req *Request) (*http.Client, error) {
 				}()
 			} else {
 				ipPort = addr
-				if err == nil {
-					dnsCache.Store(addr, conn.RemoteAddr().String())
-				}
+				defer func() {
+					if err == nil {
+						dnsCache.Store(addr, conn.RemoteAddr().String())
+					}
+				}()
 			}
 			conn, err = net.DialTimeout(network, ipPort, req.DialTimeout)
 			if err != nil {

@@ -84,11 +84,17 @@ func (c *Context) parseHtml() error {
 			}
 		}
 	}
+	defer func() {
+		if err := c.Response.Body.Close(); err != nil {
+			log.Warnf("【%s】响应body关闭失败!!", c.Url)
+		}
+	}()
 
 	var err error
 	switch pageEncode {
-	// 不做转码处理
 	case "utf8", "utf-8", "unicode-1-1-utf-8":
+		// 不做转码处理
+		c.html, err = ioutil.ReadAll(c.Response.Body)
 	default:
 		// 指定了编码类型，但不是utf8时，自动转码为utf8
 		// get converter to utf-8
@@ -102,9 +108,6 @@ func (c *Context) parseHtml() error {
 
 		if err == nil {
 			c.html, err = ioutil.ReadAll(destReader)
-			if err == nil {
-				c.Response.Body.Close()
-			}
 		}
 	}
 	return err

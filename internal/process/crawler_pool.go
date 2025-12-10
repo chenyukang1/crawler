@@ -1,6 +1,7 @@
 package process
 
 import (
+	"github.com/chenyukang1/crawler/internal/spider"
 	"sync"
 	"time"
 )
@@ -21,7 +22,7 @@ func NewCrawlerPool(capacity int) *CrawlerPool {
 	}
 }
 
-func (p *CrawlerPool) Alloc() *Crawler {
+func (p *CrawlerPool) Alloc(spider *spider.Spider) *Crawler {
 	for {
 		select {
 		case crawler := <-p.pool:
@@ -29,7 +30,8 @@ func (p *CrawlerPool) Alloc() *Crawler {
 		default:
 			p.mu.Lock()
 			if p.count < p.capacity {
-				crawler := NewCrawler()
+				crawler := NewCrawler(spider)
+				p.all = append(p.all, crawler)
 				p.count++
 				p.mu.Unlock()
 				return crawler
@@ -43,10 +45,21 @@ func (p *CrawlerPool) Free(crawler *Crawler) {
 	if !crawler.CanStop() {
 		return
 	}
+	p.mu.Lock()
+	for i, c := range p.all {
+		if c == crawler {
+			p.all[i] = p.all[len(p.all)-1]
+			p.all = p.all[:len(p.all)-1]
+			break
+		}
+	}
+	p.count--
+	p.mu.Unlock()
 	p.pool <- crawler
 }
 
-// Cores 核心爬虫数
-func (p *CrawlerPool) Cores() int {
-	return p.capacity << 1
+func (p *CrawlerPool) Stop() {
+	for _, crawler := range p.all {
+		crawler.Stop()
+	}
 }
