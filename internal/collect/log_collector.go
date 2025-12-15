@@ -14,13 +14,13 @@ var Log = &LogCollector{
 		ProcessBatch: func(batch []DataCell) {
 			for _, cell := range batch {
 				for k, v := range cell {
-					log.Infof("collect %s : %s\n", k, v)
+					log.Infof("collect %s : %v\n", k, v)
 				}
 			}
 		},
 		dataBatch: make([]DataCell, 0),
-		batchSize: 20,
-		finish:    make(chan bool, 1),
+		batchSize: 1,
+		finish:    make(chan struct{}, 1),
 	},
 }
 

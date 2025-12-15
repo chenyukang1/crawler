@@ -32,8 +32,8 @@ type Crawler struct {
 	fetcher  *fetch.Fetcher
 	filter   filter.Filter
 	status   int           //执行状态
-	finish   chan int      //结束channel
 	idleTime time.Duration //空闲时间，超过被回收
+	finish   chan struct{} //结束channel
 	lock     sync.RWMutex
 }
 
@@ -119,7 +119,7 @@ func NewCrawler(spider *spider.Spider) *Crawler {
 		fetcher:   fetch.Default,
 		filter:    filter.GlobalFilter,
 		status:    status.INITIAL,
-		finish:    make(chan int, 1),
+		finish:    make(chan struct{}, 1),
 		idleTime:  60 * time.Second,
 	}
 }
@@ -131,7 +131,7 @@ func (c *Crawler) Start() {
 	go c.Collector.Pipeline()
 	go func() {
 		c.run()
-		c.finish <- 1
+		c.finish <- struct{}{}
 	}()
 	<-c.finish
 	c.setStatus(status.STOPPED)
@@ -203,10 +203,11 @@ loop:
 			continue
 		}
 		ctx = &spider.Context{
-			Spider:   c.spider,
-			Url:      task.Url,
-			Request:  request,
-			Response: response,
+			Spider:         c.spider,
+			Url:            task.Url,
+			Request:        request,
+			Response:       response,
+			StructuredData: make([]collect.DataCell, 0),
 		}
 		if err = ctx.Rule(task.RuleName); err != nil {
 			log.Errorf("【%s】Url【%s】规则解析失败 %v ", task.Url, task.RuleName, err)

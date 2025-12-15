@@ -26,7 +26,7 @@ func NewTaskQueue() TaskQueue {
 		in:   make(chan *CrawlTask),
 		out:  make(chan *CrawlTask),
 		heap: &taskHeap,
-		stop: make(chan struct{}),
+		stop: make(chan struct{}, 1),
 	}
 }
 

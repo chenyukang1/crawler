@@ -3,6 +3,8 @@ package process
 import (
 	"github.com/chenyukang1/crawler/internal/spider"
 	"github.com/chenyukang1/crawler/pkg/log"
+	"net/http"
+	_ "net/http/pprof"
 	"sync"
 	"time"
 )
@@ -26,7 +28,7 @@ func NewScheduler() *Scheduler {
 		queue:   NewTaskQueue(),
 		spiders: make(map[string]*spider.Spider),
 		route:   make(map[string]chan *CrawlTask),
-		stop:    make(chan struct{}),
+		stop:    make(chan struct{}, 1),
 	}
 }
 
@@ -41,6 +43,13 @@ func (s *Scheduler) Run() {
 		return
 	}
 	s.queue.Init()
+	go func() {
+		err := http.ListenAndServe("localhost:6060", nil)
+		if err != nil {
+			log.Errorf("启动在本地6060端口失败! %v", err)
+			return
+		}
+	}()
 	go s.run()
 	go s.dispatch()
 }
