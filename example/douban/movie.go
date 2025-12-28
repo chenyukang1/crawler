@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-func main() {
+func main2() {
 	log.Info("开始爬虫任务...")
 	scheduler := process.GlobalScheduler
 	spider1 := &spider.Spider{
@@ -52,6 +52,9 @@ func main() {
 				Name: "解析导航页",
 				Run: func(ctx *spider.Context) {
 					doc, err := ctx.GetDom()
+					if err != nil {
+						log.Errorf("dom解析失败 %v", err)
+					}
 					targetText := "找电影"
 					var path string
 					doc.Find(".app-items.app-type1 > a").Each(func(i int, s *goquery.Selection) {

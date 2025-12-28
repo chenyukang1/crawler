@@ -11,7 +11,7 @@ import (
 type Logic func() (any, error)
 
 type Retry interface {
-	DoRetry(ctx context.Context, logic Logic) (any, error)
+	DoRetry(ctx context.Context, logicName string, logic Logic) (any, error)
 }
 
 type FixedRetry struct {
@@ -19,12 +19,16 @@ type FixedRetry struct {
 	Interval   time.Duration
 }
 
-func (f *FixedRetry) DoRetry(ctx context.Context, logic Logic) (any, error) {
+func (f *FixedRetry) DoRetry(ctx context.Context, logicName string, logic Logic) (any, error) {
 	for i := 0; i < f.ReTryTimes; i++ {
-		if res, err := logic(); err == nil {
+		var (
+			err error
+			res any
+		)
+		if res, err = logic(); err == nil {
 			return res, nil
 		}
-		log.Errorf("fail at %d, retrying...", i)
+		log.Errorf("%s failed %d times, cause: %v, retrying...", logicName, i + 1, err)
 		select {
 		case <-ctx.Done():
 			return nil, ctx.Err()
@@ -39,12 +43,16 @@ type BackoffRetry struct {
 	Interval   time.Duration
 }
 
-func (f *BackoffRetry) DoRetry(ctx context.Context, logic Logic) (any, error) {
+func (f *BackoffRetry) DoRetry(ctx context.Context, logicName string, logic Logic) (any, error) {
 	for i := 0; i < f.ReTryTimes; i++ {
-		if res, err := logic(); err == nil {
+		var (
+			err error
+			res any
+		)
+		if res, err = logic(); err == nil {
 			return res, nil
 		}
-		log.Errorf("fail at %d, retrying...", i)
+		log.Errorf("%s failed %d times, cause: %v, retrying...", logicName, i + 1, err)
 		select {
 		case <-ctx.Done():
 			return nil, ctx.Err()

@@ -18,7 +18,7 @@ type Scheduler struct {
 	spiders  map[string]*spider.Spider
 	route    map[string]chan *CrawlTask
 
-	wg   sync.WaitGroup
+	// wg   sync.WaitGroup
 	mu   sync.RWMutex
 	stop chan struct{}
 }
@@ -38,7 +38,7 @@ func (s *Scheduler) Register(spider *spider.Spider) {
 }
 
 func (s *Scheduler) Run() {
-	if s.spiders == nil || len(s.spiders) == 0 {
+	if len(s.spiders) == 0 {
 		log.Errorf("没有爬虫规则注册！！")
 		return
 	}

@@ -7,16 +7,19 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
-	"github.com/chenyukang1/crawler/pkg/log"
-	"github.com/chenyukang1/crawler/pkg/retry"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"net/http/cookiejar"
+	"net/http/httputil"
 	"net/url"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/chenyukang1/crawler/pkg/log"
+	"github.com/chenyukang1/crawler/pkg/retry"
 )
 
 type Fetcher struct {
@@ -57,8 +60,14 @@ func (f *Fetcher) Fetch(ctx context.Context, req *Request) (request *http.Reques
 		log.Errorf("create request for %s fail: %v", req.Url, err)
 	}
 	request.Header = req.Header
+	dump, err := httputil.DumpRequestOut(request, true)
+	if err != nil {
+		log.Errorf("dump fail %v", err)
+	}
+	log.Infof("request dump: %s", dump)
 
-	res, err := req.Retry.DoRetry(ctx, func() (any, error) {
+	logicName := fmt.Sprintf("fetch Url: %s", req.Url.String())
+	res, err := req.Retry.DoRetry(ctx, logicName, func() (any, error) {
 		return client.Do(request)
 	})
 	if err != nil {

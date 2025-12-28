@@ -2,6 +2,12 @@ package process
 
 import (
 	"context"
+	"math/rand"
+	"net/http"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/chenyukang1/crawler/internal/collect"
 	"github.com/chenyukang1/crawler/internal/fetch"
 	"github.com/chenyukang1/crawler/internal/filter"
@@ -10,11 +16,6 @@ import (
 	"github.com/chenyukang1/crawler/pkg/log"
 	"github.com/chenyukang1/crawler/pkg/retry"
 	"github.com/chenyukang1/crawler/pkg/utils"
-	"math/rand"
-	"net/http"
-	"strings"
-	"sync"
-	"time"
 )
 
 type ICrawler interface {
@@ -56,6 +57,7 @@ type CrawlTask struct {
 }
 
 var userAgents = []string{
+	"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
 	"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
 	"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15",
 	"Mozilla/5.0 (X11; Linux x86_64) Gecko/20100101 Firefox/120.0",
@@ -102,6 +104,8 @@ func (c *CrawlTask) BuildRequest() (req *fetch.Request, err error) {
 		req.Method = "GET"
 	}
 	req.Header.Add("User-Agent", userAgents[rand.Intn(len(userAgents))])
+	req.Header.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8")
+	req.Header.Add("Connection", "keep-alive")
 
 	req.ConnTimeout = c.ConnTimeout
 	req.DialTimeout = c.DialTimeout
