@@ -20,18 +20,18 @@ func TestTaskQueueHeapWrapper_Pop(t1 *testing.T) {
 			t := NewTaskQueue()
 			t.Init()
 			t.Push(&CrawlTask{
-				Url:      "high priority",
+				URL:      "high priority",
 				Priority: 1,
 			})
 			t.Push(&CrawlTask{
-				Url:      "mid priority",
+				URL:      "mid priority",
 				Priority: 2,
 			})
 			t.Push(&CrawlTask{
-				Url:      "low priority",
+				URL:      "low priority",
 				Priority: 3,
 			})
-			if got := t.Pop().Url; !reflect.DeepEqual(got, tt.want) {
+			if got := t.Pop().URL; !reflect.DeepEqual(got, tt.want) {
 				t1.Errorf("Pop() = %v, want %v", got, tt.want)
 			}
 		})

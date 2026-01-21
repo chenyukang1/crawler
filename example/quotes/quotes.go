@@ -27,6 +27,9 @@ func main() {
 					csrfToken, exists := dom.Find("input[name='csrf_token']").Attr("value")
 					if !exists {
 						log.Error("cstf token not found")
+						panic("cstf token not found")
+					} else {
+						log.Infof("fetch csrf token %s", csrfToken)
 					}
 
 					postData := url.Values{}
@@ -40,7 +43,7 @@ func main() {
 					headers.Add("Content-Type", "application/x-www-form-urlencoded")
 
 					task := process.CrawlTask{
-						Url:          "https://quotes.toscrape.com/login",
+						URL:          "https://quotes.toscrape.com/login",
 						Method:       "POST",
 						Header:       headers,
 						EnableCookie: true,
@@ -56,6 +59,7 @@ func main() {
 						Reloadable:    false,
 						SpiderName:    "quotes",
 						RuleName:      "Home",
+						ShouldFilter:  false,
 					}
 
 					process.GlobalScheduler.Submit(&task)
@@ -76,6 +80,7 @@ func main() {
 	}
 
 	task := process.DefaultCrawlTask("https://quotes.toscrape.com/login", "quotes", "Login")
+	task.EnableCookie = true
 
 	scheduelr := process.GlobalScheduler
 	scheduelr.Register(quotesSpider)

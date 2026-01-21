@@ -39,7 +39,7 @@ type Crawler struct {
 }
 
 type CrawlTask struct {
-	Url           string        // 目标URL，必须设置
+	URL           string        // 目标URL，必须设置
 	Method        string        // GET POST POST-M HEAD
 	Header        http.Header   // 请求头信息
 	EnableCookie  bool          // 是否使用Cookie
@@ -52,6 +52,7 @@ type CrawlTask struct {
 	Reloadable    bool          // 是否允许重复该链接下载
 	SpiderName    string        // spider名称
 	RuleName      string        // 解析规则名称
+	ShouldFilter  bool          // 是否过滤
 
 	proxy string // 当用户界面设置可使用代理IP时，自动设置代理
 }
@@ -65,13 +66,13 @@ var userAgents = []string{
 }
 
 const (
-	DEFAULT_METHOD = "GET"
+	DefaultMethod = "GET"
 )
 
 func DefaultCrawlTask(url string, spider string, rule string) *CrawlTask {
 	return &CrawlTask{
-		Url:         url,
-		Method:      DEFAULT_METHOD,
+		URL:         url,
+		Method:      DefaultMethod,
 		DialTimeout: time.Second,
 		ConnTimeout: time.Second,
 		Retry: &retry.BackoffRetry{
@@ -83,12 +84,13 @@ func DefaultCrawlTask(url string, spider string, rule string) *CrawlTask {
 		Reloadable:    false,
 		SpiderName:    spider,
 		RuleName:      rule,
+		ShouldFilter:  true,
 	}
 }
 
 func (c *CrawlTask) BuildRequest() (req *fetch.Request, err error) {
 	req = &fetch.Request{}
-	req.Url, err = utils.UrlEncode(c.Url)
+	req.Url, err = utils.UrlEncode(c.URL)
 
 	req.Header = c.Header
 	if req.Header == nil {
@@ -98,6 +100,7 @@ func (c *CrawlTask) BuildRequest() (req *fetch.Request, err error) {
 	case "GET":
 		req.Method = method
 	case "POST":
+		req.Method = method
 		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 		req.Body = strings.NewReader(c.PostData)
 	default:
@@ -187,34 +190,34 @@ loop:
 			idled++
 			continue
 		}
-		if !c.filter.DoFilter(task.Url) {
-			log.Errorf("【%s】重复Url！！", task.Url)
+		if task.ShouldFilter && !c.filter.DoFilter(task.URL) {
+			log.Errorf("【%s】重复Url！！", task.URL)
 			continue
 		}
-		if !c.filter.CanCrawl(task.Url) {
-			log.Warnf("【%s】该Url不可爬！！", task.Url)
+		if !c.filter.CanCrawl(task.URL) {
+			log.Warnf("【%s】该Url不可爬！！", task.URL)
 		}
 
 		req, err := task.BuildRequest()
 		if err != nil {
-			log.Errorf("【%s】Url解析失败, %v ", task.Url, err)
+			log.Errorf("【%s】Url解析失败, %v ", task.URL, err)
 			continue
 		}
 
 		request, response, err = c.fetcher.Fetch(context.Background(), req)
 		if err != nil {
-			log.Errorf("【%s】Url访问失败, %v ", task.Url, err)
+			log.Errorf("【%s】Url访问失败, %v ", task.URL, err)
 			continue
 		}
 		ctx = &spider.Context{
 			Spider:         c.spider,
-			Url:            task.Url,
+			Url:            task.URL,
 			Request:        request,
 			Response:       response,
 			StructuredData: make([]collect.DataCell, 0),
 		}
 		if err = ctx.Rule(task.RuleName); err != nil {
-			log.Errorf("【%s】Url【%s】规则解析失败 %v ", task.Url, task.RuleName, err)
+			log.Errorf("【%s】Url【%s】规则解析失败 %v ", task.URL, task.RuleName, err)
 			continue
 		}
 		for _, cell := range ctx.StructuredData {
