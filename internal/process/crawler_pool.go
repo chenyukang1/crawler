@@ -1,9 +1,10 @@
 package process
 
 import (
-	"github.com/chenyukang1/crawler/internal/spider"
 	"sync"
 	"time"
+
+	"github.com/chenyukang1/crawler/internal/spider"
 )
 
 type CrawlerPool struct {

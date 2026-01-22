@@ -1,22 +1,23 @@
 package process
 
 import (
-	"github.com/chenyukang1/crawler/internal/spider"
-	"github.com/chenyukang1/crawler/pkg/log"
+	"context"
 	"net/http"
 	_ "net/http/pprof"
 	"sync"
 	"time"
+
+	"github.com/chenyukang1/crawler/internal/spider"
+	"github.com/chenyukang1/crawler/pkg/log"
 )
 
-// GlobalScheduler 全局唯一实例
-var GlobalScheduler = NewScheduler()
-
 type Scheduler struct {
-	queue    TaskQueue
-	crawlers *CrawlerPool
-	spiders  map[string]*spider.Spider
-	route    map[string]chan *CrawlTask
+	queue   TaskQueue
+	pool    *CrawlerPool
+	spiders map[string]*spider.Spider
+	route   map[string]chan *CrawlTask
+	ctx     context.Context
+	cancel  context.CancelFunc
 
 	// wg   sync.WaitGroup
 	mu   sync.RWMutex
@@ -24,11 +25,14 @@ type Scheduler struct {
 }
 
 func NewScheduler() *Scheduler {
+	ctx, cancel := context.WithCancel(context.Background())
 	return &Scheduler{
 		queue:   NewTaskQueue(),
 		spiders: make(map[string]*spider.Spider),
 		route:   make(map[string]chan *CrawlTask),
 		stop:    make(chan struct{}, 1),
+		ctx:     ctx,
+		cancel:  cancel,
 	}
 }
 
@@ -58,30 +62,19 @@ func (s *Scheduler) Submit(task *CrawlTask) {
 	s.queue.Push(task)
 }
 
-func (s *Scheduler) Fetch(spiderName string) *CrawlTask {
-	select {
-	case task := <-s.route[spiderName]:
-		return task
-	case <-time.After(time.Second):
-		return nil
-	}
-}
-
 func (s *Scheduler) Stop() {
-	s.crawlers.Stop()
+	s.pool.Stop()
 	s.stop <- struct{}{}
 }
 
 func (s *Scheduler) run() {
 	n := len(s.spiders)
-	s.crawlers = NewCrawlerPool(n)
-	//s.wg.Add(n)
+	s.pool = NewCrawlerPool(n)
 	for _, v := range s.spiders {
-		crawler := s.crawlers.Alloc(v)
+		crawler := s.pool.Alloc(v)
 		go func() {
 			defer func() {
-				s.crawlers.Free(crawler)
-				//s.wg.Done()
+				s.pool.Free(crawler)
 			}()
 			crawler.Start()
 		}()

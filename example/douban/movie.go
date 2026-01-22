@@ -3,19 +3,23 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/url"
+	"strings"
+
 	"github.com/PuerkitoBio/goquery"
+	global "github.com/chenyukang1/crawler/internal/app"
 	"github.com/chenyukang1/crawler/internal/collect"
 	"github.com/chenyukang1/crawler/internal/process"
 	"github.com/chenyukang1/crawler/internal/spider"
 	"github.com/chenyukang1/crawler/pkg/log"
-	"net/http"
-	"net/url"
-	"strings"
 )
 
 func main2() {
 	log.Info("开始爬虫任务...")
-	scheduler := process.GlobalScheduler
+	app := global.Get()
+
+	scheduler := app.Scheduler
 	spider1 := &spider.Spider{
 		Name:        "豆瓣网",
 		Description: "解析首页",

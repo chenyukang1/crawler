@@ -29,6 +29,7 @@ type ICrawler interface {
 type Crawler struct {
 	Collector collect.Collector
 
+	queue    TaskQueue
 	spider   *spider.Spider // 解析规则
 	fetcher  *fetch.Fetcher
 	filter   filter.Filter
@@ -184,7 +185,7 @@ loop:
 			request  *http.Request
 			response *http.Response
 		)
-		task = GlobalScheduler.Fetch(c.spider.Name)
+		task = c.queue.Pop()
 		if task == nil {
 			time.Sleep(time.Second)
 			idled++

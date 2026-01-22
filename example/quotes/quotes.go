@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
+	global "github.com/chenyukang1/crawler/internal/app"
 	"github.com/chenyukang1/crawler/internal/collect"
 	"github.com/chenyukang1/crawler/internal/process"
 	"github.com/chenyukang1/crawler/internal/spider"
@@ -61,7 +62,7 @@ func main() {
 						ShouldFilter:  false,
 					}
 
-					process.GlobalScheduler.Submit(&task)
+					global.Get().Scheduler.Submit(&task)
 				},
 			},
 			"Home": {
@@ -79,7 +80,7 @@ func main() {
 					for i := range 10 {
 						newURL := fmt.Sprintf("https://%s/page/%d", "quotes.toscrape.com", i+1)
 						task := process.DefaultCrawlTask(newURL, "quotes", "Page")
-						process.GlobalScheduler.Submit(task)
+						global.Get().Scheduler.Submit(task)
 					}
 				},
 			},
@@ -104,7 +105,7 @@ func main() {
 	task := process.DefaultCrawlTask("https://quotes.toscrape.com/login", "quotes", "Login")
 	task.EnableCookie = true
 
-	scheduelr := process.GlobalScheduler
+	scheduelr := global.Get().Scheduler
 	scheduelr.Register(quotesSpider)
 	scheduelr.Run()
 	scheduelr.Submit(task)

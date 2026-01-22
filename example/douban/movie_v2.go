@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
+	global "github.com/chenyukang1/crawler/internal/app"
 	"github.com/chenyukang1/crawler/internal/collect"
 	"github.com/chenyukang1/crawler/internal/process"
 	"github.com/chenyukang1/crawler/internal/spider"
@@ -14,7 +15,8 @@ import (
 )
 
 func main() {
-	scheduler := process.GlobalScheduler
+	app := global.Get()
+	scheduler := app.Scheduler
 	spider := spider.Spider{
 		Name:        "豆瓣电影网",
 		Description: "豆瓣电影爬虫",
