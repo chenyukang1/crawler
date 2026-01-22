@@ -2,10 +2,13 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"time"
 
+	"github.com/PuerkitoBio/goquery"
+	"github.com/chenyukang1/crawler/internal/collect"
 	"github.com/chenyukang1/crawler/internal/process"
 	"github.com/chenyukang1/crawler/internal/spider"
 	"github.com/chenyukang1/crawler/pkg/log"
@@ -26,10 +29,8 @@ func main() {
 					}
 					csrfToken, exists := dom.Find("input[name='csrf_token']").Attr("value")
 					if !exists {
-						log.Error("cstf token not found")
-						panic("cstf token not found")
-					} else {
-						log.Infof("fetch csrf token %s", csrfToken)
+						log.Error("csrf token not found")
+						panic("csrf token not found")
 					}
 
 					postData := url.Values{}
@@ -55,8 +56,6 @@ func main() {
 							Interval:   time.Second,
 						},
 						RedirectTimes: -1,
-						Priority:      0,
-						Reloadable:    false,
 						SpiderName:    "quotes",
 						RuleName:      "Home",
 						ShouldFilter:  false,
@@ -68,11 +67,34 @@ func main() {
 			"Home": {
 				Name: "登录页面",
 				Run: func(ctx *spider.Context) {
-					html, err := ctx.GetHtml()
+					dom, err := ctx.GetDom()
 					if err != nil {
-						log.Errorf("get html fail for url %s, %v", ctx.Url, err)
+						log.Errorf("get dom fail for url %s, %v", ctx.Url, err)
 					}
-					log.Info(string(html))
+					dom.Find(".row .quote").Each(func(i int, s *goquery.Selection) {
+						data := collect.NewDataCell()
+						data.Set("text", s.Find("span.text").Text())
+						ctx.StructuredData = append(ctx.StructuredData, data)
+					})
+					for i := range 10 {
+						newURL := fmt.Sprintf("https://%s/page/%d", "quotes.toscrape.com", i+1)
+						task := process.DefaultCrawlTask(newURL, "quotes", "Page")
+						process.GlobalScheduler.Submit(task)
+					}
+				},
+			},
+			"Page": {
+				Name: "分页页面",
+				Run: func(ctx *spider.Context) {
+					dom, err := ctx.GetDom()
+					if err != nil {
+						log.Errorf("get dom fail for url %s, %v", ctx.Url, err)
+					}
+					dom.Find(".row .quote").Each(func(i int, s *goquery.Selection) {
+						data := collect.NewDataCell()
+						data.Set("text", s.Find("span.text").Text())
+						ctx.StructuredData = append(ctx.StructuredData, data)
+					})
 				},
 			},
 		},

@@ -72,7 +72,7 @@ const (
 func DefaultCrawlTask(url string, spider string, rule string) *CrawlTask {
 	return &CrawlTask{
 		URL:         url,
-		Method:      DefaultMethod,
+		Method:      DeafultMethod,
 		DialTimeout: time.Second,
 		ConnTimeout: time.Second,
 		Retry: &retry.BackoffRetry{

@@ -27,16 +27,16 @@ type Fetcher struct {
 }
 
 type Request struct {
-	Url           *url.URL      //目标URL，必须设置
-	Method        string        //GET POST POST-M HEAD
-	Header        http.Header   //请求头信息
-	Body          io.Reader     //POST values
-	Proxy         *url.URL      //代理IP时，自动设置代理
-	DialTimeout   time.Duration //创建连接超时 dial tcp: i/o timeout
-	ConnTimeout   time.Duration //连接状态超时 WSARecv tcp: i/o timeout
-	RedirectTimes int           //重定向的最大次数，-1为不限制次数
-	EnableCookie  bool          //是否使用Cookie
-	Reloadable    bool          //是否允许重复该链接下载
+	Url           *url.URL      // 目标URL，必须设置
+	Method        string        // GET POST POST-M HEAD
+	Header        http.Header   // 请求头信息
+	Body          io.Reader     // POST values
+	Proxy         *url.URL      // 代理IP时，自动设置代理
+	DialTimeout   time.Duration // 创建连接超时 dial tcp: i/o timeout
+	ConnTimeout   time.Duration // 连接状态超时 WSARecv tcp: i/o timeout
+	RedirectTimes int           // 重定向的最大次数，-1为不限制次数
+	EnableCookie  bool          // 是否使用Cookie
+	Reloadable    bool          // 是否允许重复该链接下载
 	Retry         retry.Retry   // 重试策略
 }
 
@@ -49,7 +49,7 @@ var (
 
 func (f *Fetcher) Fetch(ctx context.Context, req *Request) (request *http.Request, response *http.Response, err error) {
 	var client *http.Client
-	client, err = f.buildHttpClient(req)
+	client, err = f.buildHTTPClient(req)
 	if err != nil {
 		log.Errorf("create http client for %s fail: %v", req.Url, err)
 		return
@@ -101,7 +101,7 @@ func (f *Fetcher) Fetch(ctx context.Context, req *Request) (request *http.Reques
 	return
 }
 
-func (f *Fetcher) buildHttpClient(req *Request) (*http.Client, error) {
+func (f *Fetcher) buildHTTPClient(req *Request) (*http.Client, error) {
 	client := &http.Client{}
 
 	if req.EnableCookie {

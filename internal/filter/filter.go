@@ -2,10 +2,11 @@ package filter
 
 import (
 	"fmt"
-	"github.com/chenyukang1/crawler/pkg/log"
-	"github.com/temoto/robotstxt"
 	"net/http"
 	"net/url"
+
+	"github.com/chenyukang1/crawler/pkg/log"
+	"github.com/temoto/robotstxt"
 )
 
 type Filter interface {

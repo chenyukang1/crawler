@@ -44,14 +44,14 @@ func main() {
 					if err != nil {
 						log.Errorf("解析url失败 %v", err)
 					}
-					movieUrl, err := url.JoinPath(ctx.Url, path)
+					movieURL, err := url.JoinPath(ctx.Url, path)
 					if err != nil {
 						log.Errorf("join path失败 %v", err)
 					}
-                    log.Infof("movie url: %s", movieUrl)
+					log.Infof("movie url: %s", movieURL)
 					header := make(http.Header)
 					header.Add("Referer", u.String())
-					nextTask := process.DefaultCrawlTask(movieUrl, "豆瓣电影网", "NowPlaying")
+					nextTask := process.DefaultCrawlTask(movieURL, "豆瓣电影网", "NowPlaying")
 					nextTask.Header = header
 					nextTask.DialTimeout = 5 * time.Second
 					nextTask.ConnTimeout = 5 * time.Second
@@ -65,7 +65,7 @@ func main() {
 					if err != nil {
 						log.Errorf("dom 解析失败", err)
 					}
-                    parseMovie := func (i int, s *goquery.Selection) {
+					parseMovie := func(i int, s *goquery.Selection) {
 						type Movie struct {
 							title    string
 							score    string
@@ -77,29 +77,29 @@ func main() {
 							actors   string
 							category string
 						}
-                        movie := Movie{
-                            title: s.AttrOr("data-title", ""),
-                            score: s.AttrOr("data-score", ""),
-                            star: s.AttrOr("data-star", ""),
-                            release: s.AttrOr("data-release", ""),
-                            duration: s.AttrOr("data-duration", ""),
-                            region: s.AttrOr("data-region", ""),
-                            director: s.AttrOr("data-director", ""),
-                            actors: s.AttrOr("data-actors", ""),
-                            category: s.AttrOr("data-category", ""),
-                        }
-                        structuredData := collect.NewDataCell()
-                        structuredData.Set("标题", movie.title)
-                        structuredData.Set("评分", movie.score)
-                        structuredData.Set("收藏", movie.star)
-                        structuredData.Set("发布时间", movie.release)
-                        structuredData.Set("时长", movie.duration)
-                        structuredData.Set("地区", movie.region)
-                        structuredData.Set("分类", movie.category)
-                        structuredData.Set("导演", movie.director)
-                        structuredData.Set("演员", movie.actors)
-                        ctx.StructuredData = append(ctx.StructuredData, structuredData)
-                    }
+						movie := Movie{
+							title:    s.AttrOr("data-title", ""),
+							score:    s.AttrOr("data-score", ""),
+							star:     s.AttrOr("data-star", ""),
+							release:  s.AttrOr("data-release", ""),
+							duration: s.AttrOr("data-duration", ""),
+							region:   s.AttrOr("data-region", ""),
+							director: s.AttrOr("data-director", ""),
+							actors:   s.AttrOr("data-actors", ""),
+							category: s.AttrOr("data-category", ""),
+						}
+						structuredData := collect.NewDataCell()
+						structuredData.Set("标题", movie.title)
+						structuredData.Set("评分", movie.score)
+						structuredData.Set("收藏", movie.star)
+						structuredData.Set("发布时间", movie.release)
+						structuredData.Set("时长", movie.duration)
+						structuredData.Set("地区", movie.region)
+						structuredData.Set("分类", movie.category)
+						structuredData.Set("导演", movie.director)
+						structuredData.Set("演员", movie.actors)
+						ctx.StructuredData = append(ctx.StructuredData, structuredData)
+					}
 					dom.Find("#nowplaying .list-item").Each(parseMovie)
 					dom.Find("#upcoming .list-item").Each(parseMovie)
 				},
