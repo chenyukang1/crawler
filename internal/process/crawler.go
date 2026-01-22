@@ -30,11 +30,11 @@ type Crawler struct {
 	Collector collect.Collector
 
 	queue    TaskQueue
-	spider   *spider.Spider // 解析规则
 	fetcher  *fetch.Fetcher
 	filter   filter.Filter
 	status   int           // 执行状态
 	idleTime time.Duration // 空闲时间，超过被回收
+	ctx      context.Context
 	finish   chan struct{} // 结束channel
 	lock     sync.RWMutex
 }
@@ -67,13 +67,13 @@ var userAgents = []string{
 }
 
 const (
-	DefaultMethod = "GET"
+	defaultMethod = "GET"
 )
 
 func DefaultCrawlTask(url string, spider string, rule string) *CrawlTask {
 	return &CrawlTask{
 		URL:         url,
-		Method:      DeafultMethod,
+		Method:      defaultMethod,
 		DialTimeout: time.Second,
 		ConnTimeout: time.Second,
 		Retry: &retry.BackoffRetry{
@@ -120,14 +120,13 @@ func (c *CrawlTask) BuildRequest() (req *fetch.Request, err error) {
 	return
 }
 
-func NewCrawler(spider *spider.Spider) *Crawler {
+func NewCrawler(ctx context.Context) *Crawler {
 	return &Crawler{
 		Collector: collect.Log,
-		spider:    spider,
 		fetcher:   fetch.Default,
 		filter:    filter.GlobalFilter,
 		status:    status.INITIAL,
-		finish:    make(chan struct{}, 1),
+		ctx:       ctx,
 		idleTime:  60 * time.Second,
 	}
 }
@@ -210,9 +209,14 @@ loop:
 			log.Errorf("【%s】Url访问失败, %v ", task.URL, err)
 			continue
 		}
+
+		s, err := spider.GlobalRegistry.GetSpider(task.SpiderName)
+		if err != nil {
+			log.Errorf("【%s】规则获取失败, %v", err)
+		}
 		ctx = &spider.Context{
-			Spider:         c.spider,
-			Url:            task.URL,
+			Spider:         s,
+			URL:            task.URL,
 			Request:        request,
 			Response:       response,
 			StructuredData: make([]collect.DataCell, 0),

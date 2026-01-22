@@ -18,7 +18,7 @@ var container *App
 func Get() *App {
 	container.once.Do(func() {
 		container.Scheduler = process.NewScheduler()
-		container.Pool = process.NewCrawlerPool(10)
+		container.Pool = process.NewCrawlerPool(globalConf.Crawler.Parallelism)
 		container.TaskQueue = process.NewTaskQueue()
 	})
 	return container

@@ -45,7 +45,7 @@ func main2() {
 
 					for i, href := range hrefs {
 						extractedData.Set(fmt.Sprintf("导航跳转_%d", i), href)
-						scheduler.Submit(process.DefaultCrawlTask(fmt.Sprintf("%s/%s", ctx.Url, href),
+						scheduler.Submit(process.DefaultCrawlTask(fmt.Sprintf("%s/%s", ctx.URL, href),
 							ctx.Spider.Name, "HOME_GUIDE"))
 					}
 					ctx.StructuredData = append(ctx.StructuredData, extractedData)
@@ -72,7 +72,7 @@ func main2() {
 						}
 					})
 
-					u, err := url.Parse(ctx.Url)
+					u, err := url.Parse(ctx.URL)
 					if err != nil {
 						log.Errorf("解析url失败")
 					}
@@ -96,12 +96,12 @@ func main2() {
 				Run: func(ctx *spider.Context) {
 					jsonData, err := ctx.GetHtml()
 					if err != nil {
-						log.Errorf("%s 获取网页文本失败: %v", ctx.Url, err)
+						log.Errorf("%s 获取网页文本失败: %v", ctx.URL, err)
 					}
 					var root map[string]any
 					err = json.Unmarshal(jsonData, &root)
 					if err != nil {
-						log.Errorf("%s 解析json失败: %v", ctx.Url, err)
+						log.Errorf("%s 解析json失败: %v", ctx.URL, err)
 					}
 
 					modules := root["modules"].([]any)
@@ -161,9 +161,10 @@ func main2() {
 			},
 		},
 	}
-	scheduler.Register(spider1)
+	if err := spider.GlobalRegistry.Register("豆瓣网", spider1); err != nil {
+		panic(err)
+	}
 	scheduler.Run()
 
 	scheduler.Submit(process.DefaultCrawlTask("https://m.douban.com", "豆瓣网", "Home"))
-	scheduler.Wait()
 }

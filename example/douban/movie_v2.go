@@ -17,7 +17,7 @@ import (
 func main() {
 	app := global.Get()
 	scheduler := app.Scheduler
-	spider := spider.Spider{
+	s := &spider.Spider{
 		Name:        "豆瓣电影网",
 		Description: "豆瓣电影爬虫",
 		Rules: map[string]*spider.Rule{
@@ -37,16 +37,16 @@ func main() {
 							if exists {
 								path = href
 							} else {
-								log.Warnf("%s href not found", ctx.Url)
+								log.Warnf("%s href not found", ctx.URL)
 							}
 							return
 						}
 					})
-					u, err := url.Parse(ctx.Url)
+					u, err := url.Parse(ctx.URL)
 					if err != nil {
 						log.Errorf("解析url失败 %v", err)
 					}
-					movieURL, err := url.JoinPath(ctx.Url, path)
+					movieURL, err := url.JoinPath(ctx.URL, path)
 					if err != nil {
 						log.Errorf("join path失败 %v", err)
 					}
@@ -109,11 +109,12 @@ func main() {
 		},
 	}
 
-	scheduler.Register(&spider)
+	if err := spider.GlobalRegistry.Register("豆瓣电影网", s); err != nil {
+		panic(err)
+	}
 	scheduler.Run()
 	task := process.DefaultCrawlTask("https://movie.douban.com", "豆瓣电影网", "Home")
 	task.ConnTimeout = 5 * time.Second
 	task.DialTimeout = 5 * time.Second
 	scheduler.Submit(task)
-	scheduler.Wait()
 }

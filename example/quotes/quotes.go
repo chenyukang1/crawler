@@ -26,7 +26,7 @@ func main() {
 				Run: func(ctx *spider.Context) {
 					dom, err := ctx.GetDom()
 					if err != nil {
-						log.Errorf("get dom fail for url %s, %v", ctx.Url, err)
+						log.Errorf("get dom fail for url %s, %v", ctx.URL, err)
 					}
 					csrfToken, exists := dom.Find("input[name='csrf_token']").Attr("value")
 					if !exists {
@@ -70,7 +70,7 @@ func main() {
 				Run: func(ctx *spider.Context) {
 					dom, err := ctx.GetDom()
 					if err != nil {
-						log.Errorf("get dom fail for url %s, %v", ctx.Url, err)
+						log.Errorf("get dom fail for url %s, %v", ctx.URL, err)
 					}
 					dom.Find(".row .quote").Each(func(i int, s *goquery.Selection) {
 						data := collect.NewDataCell()
@@ -89,7 +89,7 @@ func main() {
 				Run: func(ctx *spider.Context) {
 					dom, err := ctx.GetDom()
 					if err != nil {
-						log.Errorf("get dom fail for url %s, %v", ctx.Url, err)
+						log.Errorf("get dom fail for url %s, %v", ctx.URL, err)
 					}
 					dom.Find(".row .quote").Each(func(i int, s *goquery.Selection) {
 						data := collect.NewDataCell()
@@ -105,9 +105,11 @@ func main() {
 	task := process.DefaultCrawlTask("https://quotes.toscrape.com/login", "quotes", "Login")
 	task.EnableCookie = true
 
+	if err := spider.GlobalRegistry.Register("quotes", quotesSpider); err != nil {
+		panic(err)
+	}
+
 	scheduelr := global.Get().Scheduler
-	scheduelr.Register(quotesSpider)
 	scheduelr.Run()
 	scheduelr.Submit(task)
-	scheduelr.Wait()
 }

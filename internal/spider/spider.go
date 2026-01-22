@@ -17,19 +17,30 @@ type Spider struct {
 	EntryRule   string           // 入口规则名称
 }
 
-func (s *Spider) Register(ruleName string, ruleFunc RuleFunc) (err error) {
-	if ruleName == "" {
-		err = errors.New("ruleName cannot be empty")
+type Registry map[string]*Spider
+
+var GlobalRegistry = make(Registry)
+
+func (r Registry) Register(name string, spider *Spider) (err error) {
+	if name == "" {
+		err = errors.New("spider name cannnot be empty")
+		return
 	}
-	if ruleFunc == nil {
-		err = errors.New("ruleFunc cannot be nil")
+	if spider == nil {
+		err = errors.New("spider cannnot be nil")
+		return
 	}
-	if s.Rules == nil {
-		s.Rules = make(map[string]*Rule)
+	if _, ok := r[name]; ok {
+		err = errors.New("duplicate spider name")
+		return
 	}
-	s.Rules[ruleName] = &Rule{
-		Name: ruleName,
-		Run:  ruleFunc,
+	r[name] = spider
+	return nil
+}
+
+func (r Registry) GetSpider(name string) (spider *Spider, err error) {
+	if name == "" {
+		return nil, errors.New("spider name cannnot be empty")
 	}
-	return
+	return r[name], nil
 }

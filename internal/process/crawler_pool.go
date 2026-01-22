@@ -1,10 +1,9 @@
 package process
 
 import (
+	"context"
 	"sync"
 	"time"
-
-	"github.com/chenyukang1/crawler/internal/spider"
 )
 
 type CrawlerPool struct {
@@ -23,7 +22,7 @@ func NewCrawlerPool(capacity int) *CrawlerPool {
 	}
 }
 
-func (p *CrawlerPool) Alloc(spider *spider.Spider) *Crawler {
+func (p *CrawlerPool) Alloc(ctx context.Context) *Crawler {
 	for {
 		select {
 		case crawler := <-p.pool:
@@ -31,7 +30,7 @@ func (p *CrawlerPool) Alloc(spider *spider.Spider) *Crawler {
 		default:
 			p.mu.Lock()
 			if p.count < p.capacity {
-				crawler := NewCrawler(spider)
+				crawler := NewCrawler(ctx)
 				p.all = append(p.all, crawler)
 				p.count++
 				p.mu.Unlock()

@@ -3,26 +3,27 @@ package spider
 import (
 	"bytes"
 	"errors"
-	"github.com/PuerkitoBio/goquery"
-	"github.com/chenyukang1/crawler/internal/collect"
-	"github.com/chenyukang1/crawler/pkg/log"
-	"golang.org/x/net/html/charset"
 	"io"
 	"io/ioutil"
 	"mime"
 	"net/http"
 	"strings"
+
+	"github.com/PuerkitoBio/goquery"
+	"github.com/chenyukang1/crawler/internal/collect"
+	"github.com/chenyukang1/crawler/pkg/log"
+	"golang.org/x/net/html/charset"
 )
 
 type Context struct {
 	Spider         *Spider
-	Url            string
+	URL            string
 	Request        *http.Request
 	Response       *http.Response
 	StructuredData []collect.DataCell
 
-	html []byte            //html二进制数据
-	dom  *goquery.Document //解析dom节点
+	html []byte            // html二进制数据
+	dom  *goquery.Document // 解析dom节点
 }
 
 type RuleFunc func(ctx *Context)
@@ -41,7 +42,7 @@ func (c *Context) Rule(ruleName string) error {
 func (c *Context) GetHtml() ([]byte, error) {
 	if c.html == nil {
 		if err := c.parseHtml(); err != nil {
-			log.Errorf("filter html from %s fail %v", c.Url, err)
+			log.Errorf("filter html from %s fail %v", c.URL, err)
 			return nil, err
 		}
 	}
@@ -53,7 +54,7 @@ func (c *Context) GetDom() (dom *goquery.Document, err error) {
 		var html []byte
 		html, err = c.GetHtml()
 		if err != nil {
-			log.Errorf("filter dom from %s fail %v", c.Url, err)
+			log.Errorf("filter dom from %s fail %v", c.URL, err)
 			return nil, err
 		}
 		dom, err = goquery.NewDocumentFromReader(bytes.NewReader(html))
@@ -86,7 +87,7 @@ func (c *Context) parseHtml() error {
 	}
 	defer func() {
 		if err := c.Response.Body.Close(); err != nil {
-			log.Warnf("【%s】响应body关闭失败!!", c.Url)
+			log.Warnf("【%s】响应body关闭失败!!", c.URL)
 		}
 	}()
 
