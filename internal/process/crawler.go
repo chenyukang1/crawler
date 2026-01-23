@@ -29,14 +29,13 @@ type ICrawler interface {
 type Crawler struct {
 	Collector collect.Collector
 
-	queue    TaskQueue
-	fetcher  *fetch.Fetcher
-	filter   filter.Filter
-	status   int           // 执行状态
-	idleTime time.Duration // 空闲时间，超过被回收
-	ctx      context.Context
-	finish   chan struct{} // 结束channel
-	lock     sync.RWMutex
+	queue   TaskQueue
+	fetcher *fetch.Fetcher
+	filter  filter.Filter
+	status  int // 执行状态
+	ctx     context.Context
+	finish  chan struct{} // 结束channel
+	lock    sync.RWMutex
 }
 
 type CrawlTask struct {
@@ -127,7 +126,6 @@ func NewCrawler(ctx context.Context) *Crawler {
 		filter:    filter.GlobalFilter,
 		status:    status.INITIAL,
 		ctx:       ctx,
-		idleTime:  60 * time.Second,
 	}
 }
 
@@ -171,25 +169,34 @@ func (c *Crawler) Status() int {
 }
 
 func (c *Crawler) run() {
-	idled := 0 * time.Second
 loop:
-	for idled < c.idleTime {
+	for {
+		select {
+		case <-c.ctx.Done():
+			return
+		default:
+		}
+
 		if c.isPause() {
 			time.Sleep(time.Second)
 			goto loop
 		}
+
 		var (
 			task     *CrawlTask
+			ok       bool
 			ctx      *spider.Context
 			request  *http.Request
 			response *http.Response
 		)
-		task = c.queue.Pop()
-		if task == nil {
+		task, ok = c.queue.Pop()
+		if !ok {
+			break
+		} else if task == nil {
 			time.Sleep(time.Second)
-			idled++
 			continue
 		}
+
 		if task.ShouldFilter && !c.filter.DoFilter(task.URL) {
 			log.Errorf("【%s】重复Url！！", task.URL)
 			continue
@@ -228,7 +235,6 @@ loop:
 		for _, cell := range ctx.StructuredData {
 			c.Collector.Push(cell)
 		}
-		idled = 0
 	}
 }
 

@@ -5,6 +5,8 @@ count.out
 test
 profile.out
 tmp.out
+.DS_Store
+**/.DS_Store
 
 # Develop tools
 .idea/

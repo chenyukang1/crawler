@@ -19,8 +19,7 @@ func main2() {
 	log.Info("开始爬虫任务...")
 	app := global.Get()
 
-	scheduler := app.Scheduler
-	spider1 := &spider.Spider{
+	s := &spider.Spider{
 		Name:        "豆瓣网",
 		Description: "解析首页",
 		Rules: map[string]*spider.Rule{
@@ -45,7 +44,7 @@ func main2() {
 
 					for i, href := range hrefs {
 						extractedData.Set(fmt.Sprintf("导航跳转_%d", i), href)
-						scheduler.Submit(process.DefaultCrawlTask(fmt.Sprintf("%s/%s", ctx.URL, href),
+						app.Submit(process.DefaultCrawlTask(fmt.Sprintf("%s/%s", ctx.URL, href),
 							ctx.Spider.Name, "HOME_GUIDE"))
 					}
 					ctx.StructuredData = append(ctx.StructuredData, extractedData)
@@ -87,7 +86,7 @@ func main2() {
 					nextTask.Header = http.Header{}
 					nextTask.Header.Add("Content-Type", "application/json")
 					nextTask.Header.Add("Referer", "https://m.douban.com/movie/")
-					scheduler.Submit(nextTask)
+					app.Submit(nextTask)
 				},
 			},
 
@@ -161,10 +160,9 @@ func main2() {
 			},
 		},
 	}
-	if err := spider.GlobalRegistry.Register("豆瓣网", spider1); err != nil {
+	if err := spider.GlobalRegistry.Register("豆瓣网", s); err != nil {
 		panic(err)
 	}
-	scheduler.Run()
-
-	scheduler.Submit(process.DefaultCrawlTask("https://m.douban.com", "豆瓣网", "Home"))
+	app.Scheduler.Submit(process.DefaultCrawlTask("https://m.douban.com", "豆瓣网", "Home"))
+	app.Run()
 }

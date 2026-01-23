@@ -7,6 +7,7 @@ import (
 
 func main() {
 	log.Info("Start crawler...")
-	global.Get().Scheduler.Run()
+	app := global.Get()
+	app.Run()
 	// process.GlobalScheduler.Submit(process.DefaultCrawlTask("https://m.douban.com"))
 }
