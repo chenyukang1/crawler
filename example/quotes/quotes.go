@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
-	global "github.com/chenyukang1/crawler/internal/app"
+	crawler "github.com/chenyukang1/crawler/internal"
 	"github.com/chenyukang1/crawler/internal/collect"
 	"github.com/chenyukang1/crawler/internal/process"
 	"github.com/chenyukang1/crawler/internal/spider"
@@ -17,7 +18,11 @@ import (
 )
 
 func main() {
-	quotesSpider := &spider.Spider{
+	if err := os.Setenv("CRAWLER_CONF_PATH", "/Users/user/my-work/crawler-go/config/"); err != nil {
+		panic(err)
+	}
+	app := crawler.Get()
+	s := &spider.Spider{
 		Name:        "quotes",
 		Description: "quotes测试",
 		Rules: map[string]*spider.Rule{
@@ -62,7 +67,7 @@ func main() {
 						ShouldFilter:  false,
 					}
 
-					global.Get().Scheduler.Submit(&task)
+					app.Submit(&task)
 				},
 			},
 			"Home": {
@@ -80,7 +85,7 @@ func main() {
 					for i := range 10 {
 						newURL := fmt.Sprintf("https://%s/page/%d", "quotes.toscrape.com", i+1)
 						task := process.DefaultCrawlTask(newURL, "quotes", "Page")
-						global.Get().Scheduler.Submit(task)
+						app.Submit(task)
 					}
 				},
 			},
@@ -105,11 +110,10 @@ func main() {
 	task := process.DefaultCrawlTask("https://quotes.toscrape.com/login", "quotes", "Login")
 	task.EnableCookie = true
 
-	if err := spider.GlobalRegistry.Register("quotes", quotesSpider); err != nil {
+	if err := spider.GlobalRegistry.Register("quotes", s); err != nil {
 		panic(err)
 	}
 
-	scheduelr := global.Get().Scheduler
-	scheduelr.Run()
-	scheduelr.Submit(task)
+	app.Submit(task)
+	app.Run()
 }

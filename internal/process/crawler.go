@@ -29,6 +29,7 @@ type ICrawler interface {
 type Crawler struct {
 	Collector collect.Collector
 
+	seq     int
 	queue   TaskQueue
 	fetcher *fetch.Fetcher
 	filter  filter.Filter
@@ -119,13 +120,15 @@ func (c *CrawlTask) BuildRequest() (req *fetch.Request, err error) {
 	return
 }
 
-func NewCrawler(ctx context.Context) *Crawler {
+func NewCrawler(c context.Context, s int, q TaskQueue) *Crawler {
 	return &Crawler{
 		Collector: collect.Log,
+		seq:       s,
+		queue:     q,
 		fetcher:   fetch.Default,
 		filter:    filter.GlobalFilter,
 		status:    status.INITIAL,
-		ctx:       ctx,
+		ctx:       c,
 	}
 }
 
@@ -169,7 +172,7 @@ func (c *Crawler) Status() int {
 }
 
 func (c *Crawler) run() {
-loop:
+	log.Infof("[crawler-%d] start...", c.seq)
 	for {
 		select {
 		case <-c.ctx.Done():
@@ -179,7 +182,7 @@ loop:
 
 		if c.isPause() {
 			time.Sleep(time.Second)
-			goto loop
+			continue
 		}
 
 		var (
@@ -191,11 +194,15 @@ loop:
 		)
 		task, ok = c.queue.Pop()
 		if !ok {
-			break
+			log.Infof("[crawler-%d] task channel close, finish", c.seq)
+			return
 		} else if task == nil {
+			log.Infof("[crawler-%d] no more task, just sleep 1 second", c.seq)
 			time.Sleep(time.Second)
 			continue
 		}
+
+		log.Infof("[crawler-%d] fetched task", c.seq)
 
 		if task.ShouldFilter && !c.filter.DoFilter(task.URL) {
 			log.Errorf("【%s】重复Url！！", task.URL)
@@ -211,7 +218,7 @@ loop:
 			continue
 		}
 
-		request, response, err = c.fetcher.Fetch(context.Background(), req)
+		request, response, err = c.fetcher.Fetch(c.ctx, req)
 		if err != nil {
 			log.Errorf("【%s】Url访问失败, %v ", task.URL, err)
 			continue

@@ -3,15 +3,16 @@ package process
 import (
 	"context"
 	"sync"
+
+	"github.com/chenyukang1/crawler/pkg/log"
 )
 
 type CrawlerPool struct {
-	count    int
+	seq      int
 	capacity int
 	pool     chan *Crawler
 	ctx      context.Context
 	mu       sync.Mutex
-	wg       sync.WaitGroup
 }
 
 func NewCrawlerPool(c context.Context, p int) *CrawlerPool {
@@ -22,9 +23,7 @@ func NewCrawlerPool(c context.Context, p int) *CrawlerPool {
 	}
 }
 
-func (p *CrawlerPool) Alloc() *Crawler {
-	p.wg.Add(1)
-
+func (p *CrawlerPool) Alloc(q TaskQueue) *Crawler {
 	select {
 	case c := <-p.pool:
 		return c
@@ -32,9 +31,9 @@ func (p *CrawlerPool) Alloc() *Crawler {
 	}
 
 	p.mu.Lock()
-	if p.count < p.capacity {
-		crawler := NewCrawler(p.ctx)
-		p.count++
+	if p.seq < p.capacity {
+		crawler := NewCrawler(p.ctx, p.seq, q)
+		p.seq++
 		p.mu.Unlock()
 		return crawler
 	}
@@ -43,13 +42,7 @@ func (p *CrawlerPool) Alloc() *Crawler {
 	return <-p.pool
 }
 
-func (p *CrawlerPool) Free(crawler *Crawler) {
-	p.mu.Lock()
-	p.count--
-	p.mu.Unlock()
-	p.pool <- crawler
-}
-
-func (p *CrawlerPool) Wait() {
-	p.wg.Wait()
+func (p *CrawlerPool) Free(c *Crawler) {
+	log.Infof("[crawler-%d] free", c.seq)
+	p.pool <- c
 }

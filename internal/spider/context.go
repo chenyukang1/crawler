@@ -39,9 +39,9 @@ func (c *Context) Rule(ruleName string) error {
 	return nil
 }
 
-func (c *Context) GetHtml() ([]byte, error) {
+func (c *Context) GetHTML() ([]byte, error) {
 	if c.html == nil {
-		if err := c.parseHtml(); err != nil {
+		if err := c.parseHTML(); err != nil {
 			log.Errorf("filter html from %s fail %v", c.URL, err)
 			return nil, err
 		}
@@ -52,7 +52,7 @@ func (c *Context) GetHtml() ([]byte, error) {
 func (c *Context) GetDom() (dom *goquery.Document, err error) {
 	if c.dom == nil {
 		var html []byte
-		html, err = c.GetHtml()
+		html, err = c.GetHTML()
 		if err != nil {
 			log.Errorf("filter dom from %s fail %v", c.URL, err)
 			return nil, err
@@ -67,7 +67,7 @@ func (c *Context) GetDom() (dom *goquery.Document, err error) {
 	return c.dom, nil
 }
 
-func (c *Context) parseHtml() error {
+func (c *Context) parseHTML() error {
 	var contentType, pageEncode string
 	// 优先从响应头读取编码类型
 	contentType = c.Response.Header.Get("Content-Type")

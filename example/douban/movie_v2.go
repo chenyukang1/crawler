@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
-	global "github.com/chenyukang1/crawler/internal/app"
+	crawler "github.com/chenyukang1/crawler/internal"
 	"github.com/chenyukang1/crawler/internal/collect"
 	"github.com/chenyukang1/crawler/internal/process"
 	"github.com/chenyukang1/crawler/internal/spider"
@@ -15,8 +15,7 @@ import (
 )
 
 func main() {
-	app := global.Get()
-	scheduler := app.Scheduler
+	app := crawler.Get()
 	s := &spider.Spider{
 		Name:        "豆瓣电影网",
 		Description: "豆瓣电影爬虫",
@@ -57,7 +56,7 @@ func main() {
 					nextTask.Header = header
 					nextTask.DialTimeout = 5 * time.Second
 					nextTask.ConnTimeout = 5 * time.Second
-					scheduler.Submit(nextTask)
+					app.Submit(nextTask)
 				},
 			},
 			"NowPlaying": {
@@ -112,9 +111,9 @@ func main() {
 	if err := spider.GlobalRegistry.Register("豆瓣电影网", s); err != nil {
 		panic(err)
 	}
-	scheduler.Run()
+	app.Run()
 	task := process.DefaultCrawlTask("https://movie.douban.com", "豆瓣电影网", "Home")
 	task.ConnTimeout = 5 * time.Second
 	task.DialTimeout = 5 * time.Second
-	scheduler.Submit(task)
+	app.Submit(task)
 }

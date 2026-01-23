@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
-	global "github.com/chenyukang1/crawler/internal/app"
+	crawler "github.com/chenyukang1/crawler/internal"
 	"github.com/chenyukang1/crawler/internal/collect"
 	"github.com/chenyukang1/crawler/internal/process"
 	"github.com/chenyukang1/crawler/internal/spider"
@@ -17,7 +17,7 @@ import (
 
 func main2() {
 	log.Info("开始爬虫任务...")
-	app := global.Get()
+	app := crawler.Get()
 
 	s := &spider.Spider{
 		Name:        "豆瓣网",
@@ -93,7 +93,7 @@ func main2() {
 			"MOVIE": {
 				Name: "热门电影",
 				Run: func(ctx *spider.Context) {
-					jsonData, err := ctx.GetHtml()
+					jsonData, err := ctx.GetHTML()
 					if err != nil {
 						log.Errorf("%s 获取网页文本失败: %v", ctx.URL, err)
 					}
@@ -163,6 +163,6 @@ func main2() {
 	if err := spider.GlobalRegistry.Register("豆瓣网", s); err != nil {
 		panic(err)
 	}
-	app.Scheduler.Submit(process.DefaultCrawlTask("https://m.douban.com", "豆瓣网", "Home"))
+	app.Submit(process.DefaultCrawlTask("https://m.douban.com", "豆瓣网", "Home"))
 	app.Run()
 }

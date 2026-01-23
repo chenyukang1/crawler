@@ -1,8 +1,9 @@
-package internal
+package crawler
 
 import (
 	"context"
 	"net/http"
+	"os"
 	"sync"
 
 	"github.com/chenyukang1/crawler/internal/process"
@@ -29,13 +30,20 @@ type Config struct {
 var (
 	container *App
 	once      sync.Once
+	wg        sync.WaitGroup
 )
 
 func Get() *App {
 	once.Do(func() {
 		var conf Config
 		v := viper.New()
-		v.SetConfigFile("config.yaml")
+		confPath := os.Getenv("CRAWLER_CONF_PATH")
+		if confPath == "" {
+			confPath = "."
+		}
+		v.SetConfigName("config")
+		v.SetConfigType("yaml")
+		v.AddConfigPath(confPath)
 		if err := v.ReadInConfig(); err != nil {
 			log.Errorf("read in config fail %v", err)
 			panic(err)
@@ -48,6 +56,7 @@ func Get() *App {
 		ctx, cancel := context.WithCancel(context.Background())
 		taskQueue := process.NewTaskQueue(ctx)
 		pool := process.NewCrawlerPool(ctx, conf.Crawler.Parallelism)
+		taskQueue.Init()
 
 		container = &App{
 			Pool:      pool,
@@ -64,10 +73,9 @@ func (a *App) Run() {
 	if len(spider.GlobalRegistry) == 0 {
 		panic("no spider registered, register spiders first")
 	}
-	a.TaskQueue.Init()
 	go a.observe()
 	go a.run()
-	a.Pool.Wait()
+	wg.Wait()
 }
 
 func (a *App) Submit(t *process.CrawlTask) {
@@ -80,10 +88,12 @@ func (a *App) Stop() {
 
 func (a *App) run() {
 	for {
-		crawler := a.Pool.Alloc()
+		wg.Add(1)
+		crawler := a.Pool.Alloc(a.TaskQueue)
 		go func() {
 			defer func() {
 				a.Pool.Free(crawler)
+				wg.Done()
 			}()
 			crawler.Start()
 		}()
