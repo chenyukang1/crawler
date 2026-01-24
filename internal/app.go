@@ -74,7 +74,7 @@ func (a *App) Run() {
 		panic("no spider registered, register spiders first")
 	}
 	go a.observe()
-	go a.run()
+	a.run()
 	wg.Wait()
 }
 

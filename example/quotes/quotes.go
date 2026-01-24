@@ -18,7 +18,7 @@ import (
 )
 
 func main() {
-	if err := os.Setenv("CRAWLER_CONF_PATH", "/Users/user/my-work/crawler-go/config/"); err != nil {
+	if err := os.Setenv("CRAWLER_CONF_PATH", "/Users/chenyk/go/crawler-go/config/"); err != nil {
 		panic(err)
 	}
 	app := crawler.Get()
@@ -95,6 +95,7 @@ func main() {
 					dom, err := ctx.GetDom()
 					if err != nil {
 						log.Errorf("get dom fail for url %s, %v", ctx.URL, err)
+						return
 					}
 					dom.Find(".row .quote").Each(func(i int, s *goquery.Selection) {
 						data := collect.NewDataCell()
