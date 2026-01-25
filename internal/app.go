@@ -87,15 +87,16 @@ func (a *App) Stop() {
 }
 
 func (a *App) run() {
-	for {
+	for i := 0; i < a.config.Crawler.Parallelism; i++ {
 		wg.Add(1)
-		crawler := a.Pool.Alloc(a.TaskQueue)
 		go func() {
+			defer wg.Done()
+			c := a.Pool.Alloc(a.TaskQueue)
 			defer func() {
-				a.Pool.Free(crawler)
+				a.Pool.Free(c)
 				wg.Done()
 			}()
-			crawler.Start()
+			c.Start()
 		}()
 	}
 }
@@ -104,6 +105,6 @@ func (a *App) observe() {
 	err := http.ListenAndServe("localhost:6060", nil)
 	if err != nil {
 		log.Errorf("start at 6060 fail, %v", err)
-		a.cancel()
+		panic(err)
 	}
 }

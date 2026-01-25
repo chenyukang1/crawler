@@ -33,9 +33,9 @@ type Crawler struct {
 	queue   TaskQueue
 	fetcher *fetch.Fetcher
 	filter  filter.Filter
+	idle    int
 	status  int // 执行状态
 	ctx     context.Context
-	finish  chan struct{} // 结束channel
 	lock    sync.RWMutex
 }
 
@@ -137,11 +137,8 @@ func (c *Crawler) Start() {
 
 	// 开始收集数据
 	go c.Collector.Pipeline()
-	go func() {
-		c.run()
-		c.finish <- struct{}{}
-	}()
-	<-c.finish
+	c.run()
+
 	c.setStatus(status.STOPPED)
 }
 
@@ -155,7 +152,6 @@ func (c *Crawler) Stop() {
 	}
 	if c.CanStop() {
 		c.Collector.Stop()
-		close(c.finish)
 		c.setStatus(status.STOP)
 	}
 }
@@ -173,9 +169,11 @@ func (c *Crawler) Status() int {
 
 func (c *Crawler) run() {
 	log.Infof("[crawler-%d] start...", c.seq)
-	for {
+	c.idle = 0
+	for c.idle < 10 {
 		select {
 		case <-c.ctx.Done():
+			log.Infof("[crawler-%d] cancel, reason: %v", c.seq, c.ctx.Err())
 			return
 		default:
 		}
@@ -192,12 +190,13 @@ func (c *Crawler) run() {
 			request  *http.Request
 			response *http.Response
 		)
+
 		task, ok = c.queue.Pop()
 		if !ok {
-			log.Infof("[crawler-%d] task channel close, finish", c.seq)
-			return
+			log.Infof("[crawler-%d] cancel", c.seq)
 		} else if task == nil {
-			log.Infof("[crawler-%d] no more task, just sleep 1 second", c.seq)
+			log.Infof("[crawler-%d] no more task, sleep 1 second", c.seq)
+			c.idle++
 			time.Sleep(time.Second)
 			continue
 		}
