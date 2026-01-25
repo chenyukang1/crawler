@@ -29,14 +29,15 @@ type ICrawler interface {
 type Crawler struct {
 	Collector collect.Collector
 
-	seq     int
-	queue   TaskQueue
-	fetcher *fetch.Fetcher
-	filter  filter.Filter
-	idle    int
-	status  int // 执行状态
-	ctx     context.Context
-	lock    sync.RWMutex
+	seq      int
+	queue    TaskQueue
+	fetcher  *fetch.Fetcher
+	filter   filter.Filter
+	idle     int
+	idleTime int
+	status   int // 执行状态
+	ctx      context.Context
+	lock     sync.RWMutex
 }
 
 type CrawlTask struct {
@@ -120,13 +121,14 @@ func (c *CrawlTask) BuildRequest() (req *fetch.Request, err error) {
 	return
 }
 
-func NewCrawler(c context.Context, s int, q TaskQueue) *Crawler {
+func NewCrawler(c context.Context, s int, q TaskQueue, t int) *Crawler {
 	return &Crawler{
 		Collector: collect.Log,
 		seq:       s,
 		queue:     q,
 		fetcher:   fetch.Default,
 		filter:    filter.GlobalFilter,
+		idleTime:  t,
 		status:    status.INITIAL,
 		ctx:       c,
 	}
@@ -170,7 +172,7 @@ func (c *Crawler) Status() int {
 func (c *Crawler) run() {
 	log.Infof("[crawler-%d] start...", c.seq)
 	c.idle = 0
-	for c.idle < 10 {
+	for c.idle < c.idleTime {
 		select {
 		case <-c.ctx.Done():
 			log.Infof("[crawler-%d] cancel, reason: %v", c.seq, c.ctx.Err())

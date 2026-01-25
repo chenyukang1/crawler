@@ -24,6 +24,8 @@ type App struct {
 type Config struct {
 	Crawler struct {
 		Parallelism int
+		Worker      int
+		IdleTime    int
 	}
 }
 
@@ -55,7 +57,7 @@ func Get() *App {
 
 		ctx, cancel := context.WithCancel(context.Background())
 		taskQueue := process.NewTaskQueue(ctx)
-		pool := process.NewCrawlerPool(ctx, conf.Crawler.Parallelism)
+		pool := process.NewCrawlerPool(ctx, conf.Crawler.Worker)
 		taskQueue.Init()
 
 		container = &App{
@@ -91,7 +93,7 @@ func (a *App) run() {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			c := a.Pool.Alloc(a.TaskQueue)
+			c := a.Pool.Alloc(a.TaskQueue, a.config.Crawler.IdleTime)
 			defer func() {
 				a.Pool.Free(c)
 				wg.Done()

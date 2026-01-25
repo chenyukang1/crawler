@@ -23,7 +23,7 @@ func NewCrawlerPool(c context.Context, p int) *CrawlerPool {
 	}
 }
 
-func (p *CrawlerPool) Alloc(q TaskQueue) *Crawler {
+func (p *CrawlerPool) Alloc(q TaskQueue, t int) *Crawler {
 	select {
 	case c := <-p.pool:
 		return c
@@ -32,7 +32,7 @@ func (p *CrawlerPool) Alloc(q TaskQueue) *Crawler {
 
 	p.mu.Lock()
 	if p.seq < p.capacity {
-		crawler := NewCrawler(p.ctx, p.seq, q)
+		crawler := NewCrawler(p.ctx, p.seq, q, t)
 		p.seq++
 		p.mu.Unlock()
 		return crawler

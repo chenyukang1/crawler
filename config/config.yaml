@@ -1,2 +1,4 @@
 crawler:
   parallelism: 10
+  worker: 10
+  idleTime: 5
