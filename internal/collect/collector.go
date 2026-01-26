@@ -3,9 +3,9 @@ package collect
 import "github.com/chenyukang1/crawler/pkg/log"
 
 type Collector interface {
-	Pipeline()
+	Pipeline(seq int)
 	Push(cell DataCell)
-	Stop()
+	Finish()
 }
 
 type DataCell map[string]any
@@ -14,10 +14,9 @@ type BaseCollector struct {
 	DataCells    chan DataCell
 	ProcessBatch func([]DataCell)
 
-	dataBatch []DataCell    //分批输出结果缓存
-	batchSize int           //分批大小
-	count     int           //分批数
-	finish    chan struct{} //停止channel
+	dataBatch []DataCell // 分批输出结果缓存
+	batchSize int        // 分批大小
+	count     int        // 收集数量
 }
 
 func NewDataCell() DataCell {
@@ -28,28 +27,26 @@ func (c DataCell) Set(key string, value any) {
 	c[key] = value
 }
 
-func (c *BaseCollector) Pipeline() {
-	go func() {
-		for cell := range c.DataCells {
-			c.dataBatch = append(c.dataBatch, cell)
-			if len(c.dataBatch) == c.batchSize {
-				c.ProcessBatch(c.dataBatch)
-				c.dataBatch = c.dataBatch[c.batchSize:]
-				c.count++
-			}
+func (c *BaseCollector) Pipeline(seq int) {
+	c.DataCells = make(chan DataCell)
+	c.dataBatch = make([]DataCell, 0)
+	for cell := range c.DataCells {
+		c.dataBatch = append(c.dataBatch, cell)
+		if len(c.dataBatch) == c.batchSize {
+			c.ProcessBatch(c.dataBatch)
+			c.dataBatch = c.dataBatch[:0]
+			c.count += c.batchSize
 		}
-		c.ProcessBatch(c.dataBatch)
-		c.count++
-		c.finish <- struct{}{}
-		log.Info("数据收集完成!")
-	}()
-	<-c.finish
+	}
+	c.ProcessBatch(c.dataBatch)
+	c.count += len(c.dataBatch)
+	log.Infof("[crawler-%d] collect finish", seq)
 }
 
 func (c *BaseCollector) Push(cell DataCell) {
 	c.DataCells <- cell
 }
 
-func (c *BaseCollector) Stop() {
-	close(c.finish)
+func (c *BaseCollector) Finish() {
+	close(c.DataCells)
 }

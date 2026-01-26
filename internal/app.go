@@ -94,10 +94,7 @@ func (a *App) run() {
 		go func() {
 			defer wg.Done()
 			c := a.Pool.Alloc(a.TaskQueue, a.config.Crawler.IdleTime)
-			defer func() {
-				a.Pool.Free(c)
-				wg.Done()
-			}()
+			defer a.Pool.Free(c)
 			c.Start()
 		}()
 	}

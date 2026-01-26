@@ -75,11 +75,11 @@ func DefaultCrawlTask(url string, spider string, rule string) *CrawlTask {
 	return &CrawlTask{
 		URL:         url,
 		Method:      defaultMethod,
-		DialTimeout: time.Second,
-		ConnTimeout: time.Second,
+		DialTimeout: 2 * time.Second,
+		ConnTimeout: 3 * time.Second,
 		Retry: &retry.BackoffRetry{
 			ReTryTimes: 3,
-			Interval:   time.Second,
+			Interval:   2 * time.Second,
 		},
 		RedirectTimes: -1,
 		Priority:      0,
@@ -123,7 +123,7 @@ func (c *CrawlTask) BuildRequest() (req *fetch.Request, err error) {
 
 func NewCrawler(c context.Context, s int, q TaskQueue, t int) *Crawler {
 	return &Crawler{
-		Collector: collect.Log,
+		Collector: collect.NewLogCollector(10),
 		seq:       s,
 		queue:     q,
 		fetcher:   fetch.Default,
@@ -137,8 +137,6 @@ func NewCrawler(c context.Context, s int, q TaskQueue, t int) *Crawler {
 func (c *Crawler) Start() {
 	c.setStatus(status.RUN)
 
-	// 开始收集数据
-	go c.Collector.Pipeline()
 	c.run()
 
 	c.setStatus(status.STOPPED)
@@ -152,14 +150,8 @@ func (c *Crawler) Stop() {
 	if c.Status() == status.STOP {
 		return
 	}
-	if c.CanStop() {
-		c.Collector.Stop()
-		c.setStatus(status.STOP)
-	}
-}
-
-func (c *Crawler) CanStop() bool {
-	return true
+	c.Collector.Finish()
+	c.setStatus(status.STOP)
 }
 
 func (c *Crawler) Status() int {
@@ -184,6 +176,9 @@ func (c *Crawler) run() {
 			time.Sleep(time.Second)
 			continue
 		}
+
+		// 开始收集数据
+		go c.Collector.Pipeline(c.seq)
 
 		var (
 			task     *CrawlTask
@@ -243,6 +238,7 @@ func (c *Crawler) run() {
 		for _, cell := range ctx.StructuredData {
 			c.Collector.Push(cell)
 		}
+		c.Collector.Finish()
 	}
 }
 
