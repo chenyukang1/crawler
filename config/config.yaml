@@ -2,3 +2,33 @@ crawler:
   parallelism: 10
   worker: 10
   idleTime: 5
+
+rules:
+  douban-movie:
+    entry: "Home"
+    spiders:
+      Home:
+        - selector: "#nowplaying .list-item"
+          category: "正在热映"
+          fields:
+            标题: "data-title"
+            评分: "data-score"
+            收藏: "data-star"
+            发布时间: "data-release"
+            时长: "data-duration"
+            地区: "data-region"
+            分类: "data-category"
+            导演: "data-director"
+            演员: "data-actors"
+        - selector: "#upcoming .list-item"
+          category: "即将上映"
+          fields:
+            标题: "data-title"
+            评分: "data-score"
+            收藏: "data-star"
+            发布时间: "data-release"
+            时长: "data-duration"
+            地区: "data-region"
+            分类: "data-category"
+            导演: "data-director"
+            演员: "data-actors"

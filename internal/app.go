@@ -3,14 +3,11 @@ package crawler
 import (
 	"context"
 	"net/http"
-	"os"
 	"sync"
 
 	"github.com/chenyukang1/crawler/internal/process"
 	"github.com/chenyukang1/crawler/internal/spider"
 	"github.com/chenyukang1/crawler/pkg/log"
-	"github.com/joho/godotenv"
-	"github.com/spf13/viper"
 )
 
 type App struct {
@@ -22,14 +19,6 @@ type App struct {
 	cancel context.CancelFunc
 }
 
-type Config struct {
-	Crawler struct {
-		Parallelism int
-		Worker      int
-		IdleTime    int
-	}
-}
-
 var (
 	container *App
 	once      sync.Once
@@ -38,26 +27,8 @@ var (
 
 func Get() *App {
 	once.Do(func() {
-		err := godotenv.Load()
+		conf, err := readConfig()
 		if err != nil {
-			log.Errorf("load .env fail %v", err)
-			panic(err)
-		}
-		var conf Config
-		v := viper.New()
-		confPath := os.Getenv("CRAWLER_CONF_PATH")
-		if confPath == "" {
-			confPath = "."
-		}
-		v.SetConfigName("config")
-		v.SetConfigType("yaml")
-		v.AddConfigPath(confPath)
-		if err := v.ReadInConfig(); err != nil {
-			log.Errorf("read in config fail %v", err)
-			panic(err)
-		}
-		if err := v.Unmarshal(&conf); err != nil {
-			log.Errorf("parse config fail %v", err)
 			panic(err)
 		}
 
@@ -69,7 +40,7 @@ func Get() *App {
 		container = &App{
 			Pool:      pool,
 			TaskQueue: taskQueue,
-			config:    &conf,
+			config:    conf,
 			ctx:       ctx,
 			cancel:    cancel,
 		}
