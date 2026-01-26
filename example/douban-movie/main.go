@@ -17,7 +17,7 @@ import (
 func main() {
 	app := crawler.Get()
 	s := &spider.Spider{
-		Name:        "豆瓣电影网",
+		Name:        "douban_movie",
 		Description: "豆瓣电影爬虫",
 		Rules: map[string]*spider.Rule{
 			"Home": {
@@ -26,6 +26,7 @@ func main() {
 					dom, err := ctx.GetDom()
 					if err != nil {
 						log.Errorf("解析 dom 出错: %v", err)
+						panic(err)
 					}
 					var path string
 					dom.Find(".screening-hd").Each(func(i int, s *goquery.Selection) {
@@ -52,7 +53,7 @@ func main() {
 					log.Infof("movie url: %s", movieURL)
 					header := make(http.Header)
 					header.Add("Referer", u.String())
-					nextTask := process.DefaultCrawlTask(movieURL, "豆瓣电影网", "NowPlaying")
+					nextTask := process.DefaultCrawlTask(movieURL, "douban_movie", "NowPlaying")
 					nextTask.Header = header
 					nextTask.DialTimeout = 5 * time.Second
 					nextTask.ConnTimeout = 5 * time.Second
@@ -108,12 +109,12 @@ func main() {
 		},
 	}
 
-	if err := spider.GlobalRegistry.Register("豆瓣电影网", s); err != nil {
+	if err := spider.GlobalRegistry.Register("douban_movie", s); err != nil {
 		panic(err)
 	}
-	app.Run()
-	task := process.DefaultCrawlTask("https://movie.douban.com", "豆瓣电影网", "Home")
+	task := process.DefaultCrawlTask("https://movie.douban.com", "douban_movie", "Home")
 	task.ConnTimeout = 5 * time.Second
 	task.DialTimeout = 5 * time.Second
 	app.Submit(task)
+	app.Run()
 }

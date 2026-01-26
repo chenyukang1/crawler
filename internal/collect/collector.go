@@ -40,7 +40,7 @@ func (c *BaseCollector) Pipeline(seq int) {
 	}
 	c.ProcessBatch(c.dataBatch)
 	c.count += len(c.dataBatch)
-	log.Infof("[crawler-%d] collect finish", seq)
+	log.Infof("[crawler-%d] collect %d items, finish", seq, c.count)
 }
 
 func (c *BaseCollector) Push(cell DataCell) {

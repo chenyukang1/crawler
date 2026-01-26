@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"os"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
@@ -18,9 +17,6 @@ import (
 )
 
 func main() {
-	if err := os.Setenv("CRAWLER_CONF_PATH" /*"/Users/chenyk/go/crawler-go/config/"*/, "/Users/user/my-work/crawler-go/config/"); err != nil {
-		panic(err)
-	}
 	app := crawler.Get()
 	s := &spider.Spider{
 		Name:        "quotes",

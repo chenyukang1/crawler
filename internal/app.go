@@ -9,6 +9,7 @@ import (
 	"github.com/chenyukang1/crawler/internal/process"
 	"github.com/chenyukang1/crawler/internal/spider"
 	"github.com/chenyukang1/crawler/pkg/log"
+	"github.com/joho/godotenv"
 	"github.com/spf13/viper"
 )
 
@@ -37,6 +38,11 @@ var (
 
 func Get() *App {
 	once.Do(func() {
+		err := godotenv.Load()
+		if err != nil {
+			log.Errorf("load .env fail %v", err)
+			panic(err)
+		}
 		var conf Config
 		v := viper.New()
 		confPath := os.Getenv("CRAWLER_CONF_PATH")

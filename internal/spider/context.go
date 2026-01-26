@@ -39,10 +39,10 @@ func (c *Context) Rule(ruleName string) error {
 	return nil
 }
 
-func (c *Context) GetHTML() ([]byte, error) {
+func (c *Context) GetHtml() ([]byte, error) {
 	if c.html == nil {
 		if err := c.parseHTML(); err != nil {
-			log.Errorf("filter html from %s fail %v", c.URL, err)
+			log.Errorf("parse html from %s fail %v", c.URL, err)
 			return nil, err
 		}
 	}
@@ -52,14 +52,13 @@ func (c *Context) GetHTML() ([]byte, error) {
 func (c *Context) GetDom() (dom *goquery.Document, err error) {
 	if c.dom == nil {
 		var html []byte
-		html, err = c.GetHTML()
+		html, err = c.GetHtml()
 		if err != nil {
-			log.Errorf("filter dom from %s fail %v", c.URL, err)
 			return nil, err
 		}
 		dom, err = goquery.NewDocumentFromReader(bytes.NewReader(html))
 		if err != nil {
-			log.Errorf("filter dom from %s fail %v", html, err)
+			log.Errorf("parse dom from %s fail %v", html, err)
 			return nil, err
 		}
 		return
