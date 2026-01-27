@@ -2,6 +2,8 @@ package crawler
 
 import (
 	"os"
+	"path/filepath"
+	"runtime"
 
 	"github.com/chenyukang1/crawler/pkg/log"
 	"github.com/joho/godotenv"
@@ -30,8 +32,10 @@ type Config struct {
 }
 
 func readConfig() (*Config, error) {
-	err := godotenv.Load()
-	if err != nil {
+	_, f, _, _ := runtime.Caller(0)
+	root := filepath.Join(filepath.Dir(f), "..")
+	log.Infof("found root %s", root)
+	if err := godotenv.Load(filepath.Join(root, ".env")); err != nil {
 		log.Errorf("load .env fail %v", err)
 		return nil, err
 	}

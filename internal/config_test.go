@@ -26,8 +26,7 @@ func Test_readConfig(t *testing.T) {
 			if tt.wantErr {
 				t.Fatal("readConfig() succeeded unexpectedly")
 			}
-			gotSelector := got.Rules["douban-movie"].Spiders["Home"][0].Selector
-			t.Fatalf("%v", got.Rules["douban-movie"].Spiders)
+			gotSelector := got.Rules["douban-movie"].Spiders["home"][0].Selector
 			if gotSelector != tt.want {
 				t.Errorf("readConfig() = %v, want %v", got, tt.want)
 			}

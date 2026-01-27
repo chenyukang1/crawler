@@ -5,9 +5,9 @@ crawler:
 
 rules:
   douban-movie:
-    entry: "Home"
+    entry: "home"
     spiders:
-      Home:
+      home:
         - selector: "#nowplaying .list-item"
           category: "正在热映"
           fields:
