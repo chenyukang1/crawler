@@ -29,7 +29,7 @@ func Get() *App {
 	once.Do(func() {
 		ctx, cancel := context.WithCancel(context.Background())
 		taskQueue := process.NewTaskQueue(ctx)
-		pool := process.NewCrawlerPool(ctx, Conf.Crawler.Worker)
+		pool := process.NewCrawlerPool(ctx, Conf.Parallelism)
 		taskQueue.Init()
 
 		container = &App{
@@ -62,11 +62,11 @@ func (a *App) Stop() {
 }
 
 func (a *App) run() {
-	for i := 0; i < a.config.Crawler.Parallelism; i++ {
+	for i := 0; i < a.config.Parallelism; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			c := a.Pool.Alloc(a.TaskQueue, a.config.Crawler.IdleTime)
+			c := a.Pool.Alloc(a.TaskQueue, a.config.MaxIdleTime)
 			defer a.Pool.Free(c)
 			c.Start()
 		}()

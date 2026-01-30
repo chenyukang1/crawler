@@ -1,6 +1,8 @@
 package crawler
 
 import (
+	"time"
+
 	"github.com/chenyukang1/crawler/pkg/log"
 	"github.com/spf13/viper"
 )
@@ -38,11 +40,8 @@ type Task struct {
 }
 
 type Config struct {
-	Crawler struct {
-		Parallelism int `mapstructure:"parallelism"`
-		Worker      int `mapstructure:"worker"`
-		IdleTime    int `mapstructure:"idleTime"`
-	} `mapstructure:"crawler"`
+	Parallelism int 
+	MaxIdleTime    time.Duration
 
 	Spiders map[string]Spdier `mapstructure:"spiders"`
 	Tasks   []Task            `mapstructure:"tasks"`
@@ -55,6 +54,9 @@ var (
 
 func ReadConfig() {
 	v := viper.New()
+	v.SetDefault("Parallelism", 10)
+	v.SetDefault("Worker", 10)
+	v.SetDefault("MaxIdleTime", 3*time.Second)
 	if Cfgfile != "" {
 		v.SetConfigFile(Cfgfile)
 	} else {

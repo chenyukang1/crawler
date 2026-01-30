@@ -33,8 +33,7 @@ type Crawler struct {
 	queue    TaskQueue
 	fetcher  *fetch.Fetcher
 	filter   filter.Filter
-	idle     int
-	idleTime int
+	maxIdleTime time.Duration
 	status   int // 执行状态
 	ctx      context.Context
 	lock     sync.RWMutex
@@ -141,14 +140,14 @@ func (c *CrawlTask) BuildRequest() (req *fetch.Request, err error) {
 	return
 }
 
-func NewCrawler(c context.Context, s int, q TaskQueue, t int) *Crawler {
+func NewCrawler(c context.Context, s int, q TaskQueue, t time.Duration) *Crawler {
 	return &Crawler{
 		Collector: collect.NewLogCollector(10),
 		seq:       s,
 		queue:     q,
 		fetcher:   fetch.Default,
 		filter:    filter.GlobalFilter,
-		idleTime:  t,
+		maxIdleTime:  t,
 		status:    status.INITIAL,
 		ctx:       c,
 	}
@@ -183,8 +182,8 @@ func (c *Crawler) Status() int {
 
 func (c *Crawler) run() {
 	log.Infof("[crawler-%d] start...", c.seq)
-	c.idle = 0
-	for c.idle < c.idleTime {
+	lastActiveTime := time.Now()
+	for {
 		select {
 		case <-c.ctx.Done():
 			log.Infof("[crawler-%d] cancel, reason: %v", c.seq, c.ctx.Err())
@@ -212,12 +211,15 @@ func (c *Crawler) run() {
 		if !ok {
 			log.Infof("[crawler-%d] cancel", c.seq)
 		} else if task == nil {
+			if time.Since(lastActiveTime) > c.maxIdleTime {
+				return
+			}
 			log.Infof("[crawler-%d] no more task, sleep 1 second", c.seq)
-			c.idle++
 			time.Sleep(time.Second)
 			continue
 		}
 
+		lastActiveTime = time.Now()
 		log.Infof("[crawler-%d] fetched task", c.seq)
 
 		if task.ShouldFilter && !c.filter.DoFilter(task.URL) {

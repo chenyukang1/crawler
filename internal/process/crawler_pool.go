@@ -3,6 +3,7 @@ package process
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/chenyukang1/crawler/pkg/log"
 )
@@ -23,7 +24,7 @@ func NewCrawlerPool(c context.Context, p int) *CrawlerPool {
 	}
 }
 
-func (p *CrawlerPool) Alloc(q TaskQueue, t int) *Crawler {
+func (p *CrawlerPool) Alloc(q TaskQueue, t time.Duration) *Crawler {
 	select {
 	case c := <-p.pool:
 		return c

@@ -19,10 +19,14 @@ import (
 	"github.com/chenyukang1/crawler/internal/spider"
 	"github.com/chenyukang1/crawler/pkg/log"
 	"github.com/chenyukang1/crawler/pkg/retry"
+	"github.com/chenyukang1/crawler/recipes"
 )
 
 var (
 	mode        string
+	recipe      string
+	goroutines  int
+	maxIdleTime time.Duration
 	dialTimeout time.Duration
 	connTimeout time.Duration
 
@@ -41,7 +45,8 @@ var rootCmd = &cobra.Command{
 		return fmt.Errorf("invalid mode %s", mode)
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		if mode == "config" {
+		switch mode {
+		case "config":
 			options := make([]process.Option, 0)
 			if cmd.Flags().Changed("dialTimeout") {
 				options = append(options, process.WithDailTimeout(dialTimeout))
@@ -60,6 +65,13 @@ var rootCmd = &cobra.Command{
 			for _, task := range tasks {
 				app.Submit(task)
 			}
+		case "recipe":
+			r := recipes.Get(recipe)
+			if r == nil {
+				fmt.Printf("Recipe %s not found, try again.\n", recipe)
+				os.Exit(1)
+			}
+			r.Run(crawler.Get(), &spider.GlobalRegistry)
 		}
 
 		crawler.Get().Run()
@@ -79,7 +91,10 @@ func InitRoot() {
 	cobra.OnInitialize(crawler.ReadConfig)
 
 	rootCmd.Flags().StringVarP(&mode, "mode", "m", "config", "Start crwal from which mode, support [config | recipe]")
+	rootCmd.Flags().StringVarP(&recipe, "run", "r", "", "The specified recipe hard-coded.")
 	rootCmd.Flags().StringVar(&crawler.Cfgfile, "config", "./config/config.yaml", "Start crwal from specied config file.")
+	rootCmd.Flags().IntVar(&crawler.Conf.Parallelism, "goroutines", 10, "The maximum groutines to use.")
+	rootCmd.Flags().DurationVar(&crawler.Conf.MaxIdleTime, "maxIdleTime", 3*time.Second, "The maximum idle time for a crawler to finish.")
 	rootCmd.Flags().DurationVar(&dialTimeout, "dialTimeout", 3*time.Second, "The total amount of time to wait for a HTTP connection.")
 	rootCmd.Flags().DurationVar(&connTimeout, "connTimeout", 3*time.Second, "The maximum amount of time to wait for a TCP connection to be established (including DNS lookup and the three-way handshake).")
 }
