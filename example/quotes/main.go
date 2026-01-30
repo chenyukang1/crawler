@@ -20,7 +20,6 @@ func main() {
 	app := crawler.Get()
 	s := &spider.Spider{
 		Name:        "quotes",
-		Description: "quotes测试",
 		Rules: map[string]*spider.Rule{
 			"Login": {
 				Name: "登录页面",
@@ -108,7 +107,7 @@ func main() {
 	task := process.DefaultCrawlTask("https://quotes.toscrape.com/login", "quotes", "Login")
 	task.EnableCookie = true
 
-	if err := spider.GlobalRegistry.Register("quotes", s); err != nil {
+	if err := spider.GlobalRegistry.Register(s); err != nil {
 		panic(err)
 	}
 

@@ -1,24 +1,40 @@
 package crawler
 
 import (
-	"os"
-	"path/filepath"
-	"runtime"
-
 	"github.com/chenyukang1/crawler/pkg/log"
-	"github.com/joho/godotenv"
 	"github.com/spf13/viper"
 )
 
-type Spider struct {
+type Rule struct {
 	Selector string            `mapstructure:"selector"`
 	Category string            `mapstructure:"category"`
 	Fields   map[string]string `mapstructure:"fields"`
 }
 
-type Rule struct {
-	Entry   string              `mapstructure:"entry"`
-	Spiders map[string][]Spider `mapstructure:"spiders"`
+type Spdier struct {
+	URL    string            `mapstructure:"url"`
+	Method string            `mapstructure:"method"`
+	Entry  string            `mapstructure:"entry"`
+	Rules  map[string][]Rule `mapstructure:"rules"`
+}
+
+type Retry struct {
+	Times    int `mapstructure:"times"`
+	Interval int `mapstructure:"interval"`
+}
+
+type Task struct {
+	URL           string            `mapstructure:"url"`
+	Method        string            `mapstructure:"method"`
+	Headers       map[string]string `mapstructure:"headers"`
+	Spider        string            `mapstructure:"spider"`
+	Rule          string            `mapstructure:"rule"`
+	Priority      int               `mapstructure:"priority"`
+	EnableCookie  bool              `mapstructure:"enableCookie"`
+	RedirectTimes int               `mapstructure:"redirectTimes"`
+	DialTimeout   int               `mapstructure:"dialTimeout"`
+	ConnTimeout   int               `mapstructure:"connTimeout"`
+	Retry         Retry             `mapstructure:"retry"`
 }
 
 type Config struct {
@@ -28,35 +44,32 @@ type Config struct {
 		IdleTime    int `mapstructure:"idleTime"`
 	} `mapstructure:"crawler"`
 
-	Rules map[string]Rule `mapstructure:"rules"`
+	Spiders map[string]Spdier `mapstructure:"spiders"`
+	Tasks   []Task            `mapstructure:"tasks"`
 }
 
-func readConfig() (*Config, error) {
-	_, f, _, _ := runtime.Caller(0)
-	root := filepath.Join(filepath.Dir(f), "..")
-	log.Infof("found root %s", root)
-	if err := godotenv.Load(filepath.Join(root, ".env")); err != nil {
-		log.Errorf("load .env fail %v", err)
-		return nil, err
-	}
+var (
+	Conf    *Config
+	Cfgfile string
+)
 
-	var conf Config
+func ReadConfig() {
 	v := viper.New()
-	confPath := os.Getenv("CRAWLER_CONF_PATH")
-	if confPath == "" {
-		confPath = "."
+	if Cfgfile != "" {
+		v.SetConfigFile(Cfgfile)
+	} else {
+		v.SetConfigName("config")
+		v.SetConfigType("yaml")
+		v.AddConfigPath("./config")
+		v.AddConfigPath("../config")
+		v.AddConfigPath("../../config")
 	}
-	v.SetConfigName("config")
-	v.SetConfigType("yaml")
-	v.AddConfigPath(confPath)
 	if err := v.ReadInConfig(); err != nil {
 		log.Errorf("read in config fail %v", err)
-		return nil, err
+		panic(err)
 	}
-	if err := v.Unmarshal(&conf); err != nil {
+	if err := v.Unmarshal(&Conf); err != nil {
 		log.Errorf("parse config fail %v", err)
-		return nil, err
+		panic(err)
 	}
-
-	return &conf, nil
 }

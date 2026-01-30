@@ -59,6 +59,8 @@ type CrawlTask struct {
 	proxy string // 当用户界面设置可使用代理IP时，自动设置代理
 }
 
+type Option func(*CrawlTask)
+
 var userAgents = []string{
 	"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
 	"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -75,7 +77,7 @@ func DefaultCrawlTask(url string, spider string, rule string) *CrawlTask {
 	return &CrawlTask{
 		URL:         url,
 		Method:      defaultMethod,
-		DialTimeout: 2 * time.Second,
+		DialTimeout: 3 * time.Second,
 		ConnTimeout: 3 * time.Second,
 		Retry: &retry.BackoffRetry{
 			ReTryTimes: 3,
@@ -87,6 +89,24 @@ func DefaultCrawlTask(url string, spider string, rule string) *CrawlTask {
 		SpiderName:    spider,
 		RuleName:      rule,
 		ShouldFilter:  true,
+	}
+}
+
+func WithDailTimeout(d time.Duration) Option  {
+	return func(ct *CrawlTask) {
+		ct.DialTimeout = d
+	}
+}
+
+func WithConnTimeout(d time.Duration) Option {
+	return func(ct *CrawlTask) {
+		ct.ConnTimeout = d
+	}
+}
+
+func (c *CrawlTask) WithOptions(opts ...Option)  {
+	for _, opt := range opts {
+		opt(c)
 	}
 }
 

@@ -18,7 +18,6 @@ func main() {
 	app := crawler.Get()
 	s := &spider.Spider{
 		Name:        "douban_movie",
-		Description: "豆瓣电影爬虫",
 		Rules: map[string]*spider.Rule{
 			"Home": {
 				Name: "解析首页",
@@ -109,7 +108,7 @@ func main() {
 		},
 	}
 
-	if err := spider.GlobalRegistry.Register("douban_movie", s); err != nil {
+	if err := spider.GlobalRegistry.Register(s); err != nil {
 		panic(err)
 	}
 	task := process.DefaultCrawlTask("https://movie.douban.com", "douban_movie", "Home")

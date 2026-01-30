@@ -27,20 +27,15 @@ var (
 
 func Get() *App {
 	once.Do(func() {
-		conf, err := readConfig()
-		if err != nil {
-			panic(err)
-		}
-
 		ctx, cancel := context.WithCancel(context.Background())
 		taskQueue := process.NewTaskQueue(ctx)
-		pool := process.NewCrawlerPool(ctx, conf.Crawler.Worker)
+		pool := process.NewCrawlerPool(ctx, Conf.Crawler.Worker)
 		taskQueue.Init()
 
 		container = &App{
 			Pool:      pool,
 			TaskQueue: taskQueue,
-			config:    conf,
+			config:    Conf,
 			ctx:       ctx,
 			cancel:    cancel,
 		}

@@ -1,6 +1,8 @@
 package crawler
 
-import "testing"
+import (
+	"testing"
+)
 
 func Test_readConfig(t *testing.T) {
 	tests := []struct {
@@ -16,19 +18,10 @@ func Test_readConfig(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, gotErr := readConfig()
-			if gotErr != nil {
-				if !tt.wantErr {
-					t.Errorf("readConfig() failed: %v", gotErr)
-				}
-				return
-			}
-			if tt.wantErr {
-				t.Fatal("readConfig() succeeded unexpectedly")
-			}
-			gotSelector := got.Rules["douban-movie"].Spiders["home"][0].Selector
+			ReadConfig()
+			gotSelector := Conf.Spiders["douban-movie"].Rules["home"][0].Selector
 			if gotSelector != tt.want {
-				t.Errorf("readConfig() = %v, want %v", got, tt.want)
+				t.Errorf("readConfig() = %v, want %v", gotSelector, tt.want)
 			}
 		})
 	}
