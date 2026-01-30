@@ -44,6 +44,7 @@ func Get() *App {
 }
 
 func (a *App) Run() {
+	log.Info("start crwal...")
 	if len(spider.GlobalRegistry) == 0 {
 		panic("no spider registered, register spiders first")
 	}

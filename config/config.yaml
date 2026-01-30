@@ -34,10 +34,8 @@ spiders:
             演员: "data-actors"
 
 tasks:
-  - url: ""
+  - url: "https://movie.douban.com/cinema/nowplaying/shanghai/"
     method: "GET"
-    headers:
-      Origin: ""
     spider: "douban-movie"
     rule: "home"
     priority: 0

@@ -4,25 +4,66 @@ Copyright © 2026 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"fmt"
+	"net/http"
 	"os"
+	"slices"
+	"time"
+
+	"github.com/PuerkitoBio/goquery"
+	"github.com/spf13/cobra"
 
 	crawler "github.com/chenyukang1/crawler/internal"
-	"github.com/spf13/cobra"
+	"github.com/chenyukang1/crawler/internal/collect"
+	"github.com/chenyukang1/crawler/internal/process"
+	"github.com/chenyukang1/crawler/internal/spider"
+	"github.com/chenyukang1/crawler/pkg/log"
+	"github.com/chenyukang1/crawler/pkg/retry"
+)
+
+var (
+	mode        string
+	dialTimeout time.Duration
+	connTimeout time.Duration
+
+	validModes = []string{"config", "recipe"}
 )
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "crawler",
 	Short: "A high performance crawler",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
+	Long:  "crawler is a high performance crawler framework that helps you crawl easily.",
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		if slices.Contains(validModes, mode) {
+			return nil
+		}
+		return fmt.Errorf("invalid mode %s", mode)
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		if mode == "config" {
+			options := make([]process.Option, 0)
+			if cmd.Flags().Changed("dialTimeout") {
+				options = append(options, process.WithDailTimeout(dialTimeout))
+			}
+			if cmd.Flags().Changed("connTimeout") {
+				options = append(options, process.WithConnTimeout(connTimeout))
+			}
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	// Run: func(cmd *cobra.Command, args []string) { },
+			app := crawler.Get()
+			spiders := parseSpiders(crawler.Conf)
+			for _, s := range spiders {
+				spider.GlobalRegistry.Register(s)
+			}
+
+			tasks := parseTasks(crawler.Conf, options...)
+			for _, task := range tasks {
+				app.Submit(task)
+			}
+		}
+
+		crawler.Get().Run()
+	},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -34,13 +75,79 @@ func Execute() {
 	}
 }
 
-func init() {
+func InitRoot() {
 	cobra.OnInitialize(crawler.ReadConfig)
-	rootCmd.PersistentFlags().StringVar(&crawler.Cfgfile, "config", "", "config file (default is ./config.yaml)")
 
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	rootCmd.Flags().StringVarP(&mode, "mode", "m", "config", "Start crwal from which mode, support [config | recipe]")
+	rootCmd.Flags().StringVar(&crawler.Cfgfile, "config", "./config/config.yaml", "Start crwal from specied config file.")
+	rootCmd.Flags().DurationVar(&dialTimeout, "dialTimeout", 3*time.Second, "The total amount of time to wait for a HTTP connection.")
+	rootCmd.Flags().DurationVar(&connTimeout, "connTimeout", 3*time.Second, "The maximum amount of time to wait for a TCP connection to be established (including DNS lookup and the three-way handshake).")
 }
 
+// parseSpiders parse conf.Spiders to spdier.Spiders
+func parseSpiders(conf *crawler.Config) []*spider.Spider {
+	spiders := make([]*spider.Spider, 0)
+	for k, v := range conf.Spiders {
+		parsedRules := make(map[string]*spider.Rule)
+		for n, rules := range v.Rules {
+			r := &spider.Rule{
+				Name: n,
+				Run: func(ctx *spider.Context) {
+					dom, err := ctx.GetDom()
+					if err != nil {
+						log.Errorf("parse dom fail %v", err)
+					}
+					for _, p := range rules {
+						dom.Find(p.Selector).Each(func(i int, s *goquery.Selection) {
+							for pk, pv := range p.Fields {
+								data := collect.NewDataCell()
+								data.Set(pk, s.AttrOr(pv, ""))
+								ctx.StructuredData = append(ctx.StructuredData, data)
+							}
+						})
+					}
+				},
+			}
+			parsedRules[n] = r
+		}
+		spiders = append(spiders, &spider.Spider{
+			Name:      k,
+			EntryRule: v.Entry,
+			Rules:     parsedRules,
+		})
+	}
 
+	return spiders
+}
+
+// parseTasks parse conf tasks to process.CrawlTask
+func parseTasks(conf *crawler.Config, opts ...process.Option) []*process.CrawlTask {
+	tasks := make([]*process.CrawlTask, 0)
+	for _, t := range conf.Tasks {
+		headers := make(http.Header)
+		for k, v := range t.Headers {
+			headers.Add(k, v)
+		}
+		task := &process.CrawlTask{
+			URL:          t.URL,
+			Method:       t.Method,
+			Header:       headers,
+			EnableCookie: t.EnableCookie,
+			DialTimeout:  time.Duration(t.DialTimeout) * time.Second,
+			ConnTimeout:  time.Duration(t.ConnTimeout) * time.Second,
+			Retry: &retry.FixedRetry{
+				ReTryTimes: t.Retry.Times,
+				Interval:   time.Duration(t.Retry.Interval) * time.Second,
+			},
+			RedirectTimes: t.RedirectTimes,
+			Priority:      t.Priority,
+			Reloadable:    false,
+			SpiderName:    t.Spider,
+			RuleName:      t.Rule,
+			ShouldFilter:  false,
+		}
+		task.WithOptions(opts...)
+		tasks = append(tasks, task)
+	}
+	return tasks
+}

@@ -1,4 +1,4 @@
-package main
+package recipes
 
 import (
 	"net/http"
@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
+
 	crawler "github.com/chenyukang1/crawler/internal"
 	"github.com/chenyukang1/crawler/internal/collect"
 	"github.com/chenyukang1/crawler/internal/process"
@@ -14,10 +15,13 @@ import (
 	"github.com/chenyukang1/crawler/pkg/log"
 )
 
-func main() {
-	app := crawler.Get()
+type DoubanMovie struct{}
+
+var doubanMovie DoubanMovie
+
+func (m *DoubanMovie) Run(app *crawler.App, registry *spider.Registry) {
 	s := &spider.Spider{
-		Name:        "douban_movie",
+		Name: "douban_movie",
 		Rules: map[string]*spider.Rule{
 			"Home": {
 				Name: "解析首页",
@@ -115,5 +119,8 @@ func main() {
 	task.ConnTimeout = 5 * time.Second
 	task.DialTimeout = 5 * time.Second
 	app.Submit(task)
-	app.Run()
+}
+
+func init() {
+	registry["douban_movie"] = &doubanMovie
 }

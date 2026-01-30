@@ -1,5 +1,5 @@
-// Package quotes
-package main
+// Package recipes is pre-configed crawler examples
+package recipes
 
 import (
 	"fmt"
@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
+
 	crawler "github.com/chenyukang1/crawler/internal"
 	"github.com/chenyukang1/crawler/internal/collect"
 	"github.com/chenyukang1/crawler/internal/process"
@@ -16,10 +17,13 @@ import (
 	"github.com/chenyukang1/crawler/pkg/retry"
 )
 
-func main() {
-	app := crawler.Get()
+type Quotes struct{}
+
+var quotes Quotes
+
+func (q *Quotes) Run(app *crawler.App, registry *spider.Registry) {
 	s := &spider.Spider{
-		Name:        "quotes",
+		Name: "quotes",
 		Rules: map[string]*spider.Rule{
 			"Login": {
 				Name: "登录页面",
@@ -112,5 +116,8 @@ func main() {
 	}
 
 	app.Submit(task)
-	app.Run()
+}
+
+func init() {
+	registry["quotes"] = &quotes
 }
