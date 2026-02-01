@@ -190,9 +190,9 @@ func(ctx *spider.Context) {
 
 ```bash
 
-go run main.go --recipe --run douban-movie
+go run main.go --mode recipe --run douban-movie
 
-go run main.go --recipe --run quotes
+go run main.go --mode recipe --run quotes
 
 ```
 
