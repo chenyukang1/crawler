@@ -105,7 +105,6 @@ func (q *Quotes) Run(app *crawler.App, registry *spider.Registry) {
 				},
 			},
 		},
-		EntryRule: "Login",
 	}
 
 	task := process.DefaultCrawlTask("https://quotes.toscrape.com/login", "quotes", "Login")

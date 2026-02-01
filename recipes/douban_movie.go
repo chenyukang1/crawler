@@ -57,6 +57,7 @@ func (m *DoubanMovie) Run(app *crawler.App, registry *spider.Registry) {
 					header := make(http.Header)
 					header.Add("Referer", u.String())
 					nextTask := process.DefaultCrawlTask(movieURL, "douban_movie", "NowPlaying")
+					nextTask.ShouldFilter = false
 					nextTask.Header = header
 					nextTask.DialTimeout = 5 * time.Second
 					nextTask.ConnTimeout = 5 * time.Second

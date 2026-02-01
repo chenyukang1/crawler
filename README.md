@@ -84,7 +84,7 @@ go get github.com/chenyukang1/crawler
 
 go build .
 
-./crawler --run douban-movie
+./crawler
 
 ```
 
@@ -190,9 +190,9 @@ func(ctx *spider.Context) {
 
 ```bash
 
-go run main.go --run douban-movie
+go run main.go --recipe --run douban-movie
 
-go run main.go --run quotes
+go run main.go --recipe --run quotes
 
 ```
 

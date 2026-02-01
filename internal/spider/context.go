@@ -10,9 +10,10 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
+	"golang.org/x/net/html/charset"
+
 	"github.com/chenyukang1/crawler/internal/collect"
 	"github.com/chenyukang1/crawler/pkg/log"
-	"golang.org/x/net/html/charset"
 )
 
 type Context struct {
@@ -29,9 +30,6 @@ type Context struct {
 type RuleFunc func(ctx *Context)
 
 func (c *Context) Rule(ruleName string) error {
-	if ruleName == "" {
-		ruleName = c.Spider.EntryRule
-	}
 	if c.Spider.Rules[ruleName] == nil {
 		return errors.New("rule " + ruleName + " not found")
 	}

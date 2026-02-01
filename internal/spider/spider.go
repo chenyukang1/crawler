@@ -11,9 +11,8 @@ type Rule struct {
 
 // Spider 解析规则引擎
 type Spider struct {
-	Name      string           // 规则名称
-	Rules     map[string]*Rule // 核心：规则表 (Flat Tree) Key 是规则名，Value 是规则对象
-	EntryRule string           // 入口规则名称
+	Name  string           // 规则名称
+	Rules map[string]*Rule // 核心：规则表 (Flat Tree) Key 是规则名，Value 是规则对象
 }
 
 type Registry map[string]*Spider
@@ -26,9 +25,6 @@ func (r Registry) Register(s *Spider) error {
 	}
 	if s.Name == "" {
 		return errors.New("spider name cannnot be empty")
-	}
-	if s.EntryRule == "" {
-		return errors.New("spider entry rule cannot be empty")
 	}
 	if _, ok := r[s.Name]; ok {
 		return errors.New("duplicate spider name")

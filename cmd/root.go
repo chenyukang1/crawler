@@ -133,9 +133,8 @@ func parseSpiders(conf *crawler.Config) []*spider.Spider {
 			parsedRules[n] = r
 		}
 		spiders = append(spiders, &spider.Spider{
-			Name:      k,
-			EntryRule: v.Entry,
-			Rules:     parsedRules,
+			Name:  k,
+			Rules: parsedRules,
 		})
 	}
 
