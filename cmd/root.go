@@ -12,7 +12,6 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 
 	crawler "github.com/chenyukang1/crawler/internal"
 	"github.com/chenyukang1/crawler/internal/collect"
@@ -95,15 +94,19 @@ func InitRoot() {
 	rootCmd.Flags().StringVar(&crawler.Cfgfile, "config", "./config/config.yaml", "Start crwal from specied config file.")
 	rootCmd.Flags().IntVar(&goroutine, "goroutine", 10, "The maximum groutines to use.")
 	rootCmd.Flags().IntVar(&worker, "worker", 10, "The maximum groutines to use.")
-	rootCmd.Flags().DurationVar(&maxIdleTime, "maxIdleTime", 3*time.Second, "The maximum idle time for a crawler to finish.")
+	rootCmd.Flags().DurationVar(&maxIdleTime, "maxIdleTime", 10*time.Second, "The maximum idle time for a crawler to finish.")
 	rootCmd.Flags().DurationVar(&dialTimeout, "dialTimeout", 3*time.Second, "The total amount of time to wait for a HTTP connection.")
 	rootCmd.Flags().DurationVar(&connTimeout, "connTimeout", 3*time.Second, "The maximum amount of time to wait for a TCP connection to be established (including DNS lookup and the three-way handshake).")
 
-	viper.BindPFlag("parallelism", rootCmd.Flags().Lookup("goroutine"))
-	viper.BindPFlag("worker", rootCmd.Flags().Lookup("worker"))
-	viper.BindPFlag("maxIdleTime", rootCmd.Flags().Lookup("maxIdleTime"))
-
-	cobra.OnInitialize(crawler.ReadConfig)
+	cobra.OnInitialize(
+		crawler.InitViper,
+		func() {
+			crawler.Viper.BindPFlag("parallelism", rootCmd.Flags().Lookup("goroutine"))
+			crawler.Viper.BindPFlag("worker", rootCmd.Flags().Lookup("worker"))
+			crawler.Viper.BindPFlag("maxIdleTime", rootCmd.Flags().Lookup("maxIdleTime"))
+		},
+		crawler.ReadConfig,
+	)
 }
 
 // parseSpiders parse conf.Spiders to spdier.Spiders

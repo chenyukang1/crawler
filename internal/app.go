@@ -66,6 +66,7 @@ func (a *App) run() {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
+			log.Infof("MaxIdleTime: %v", a.config.MaxIdleTime)
 			c := a.Pool.Alloc(a.TaskQueue, a.config.MaxIdleTime)
 			defer a.Pool.Free(c)
 			c.Start()

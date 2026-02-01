@@ -75,6 +75,7 @@ func (q *Quotes) Run(app *crawler.App, registry *spider.Registry) {
 					dom, err := ctx.GetDom()
 					if err != nil {
 						log.Errorf("get dom fail for url %s, %v", ctx.URL, err)
+						return
 					}
 					dom.Find(".row .quote").Each(func(i int, s *goquery.Selection) {
 						data := collect.NewDataCell()

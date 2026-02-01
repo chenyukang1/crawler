@@ -50,30 +50,33 @@ type Config struct {
 }
 
 var (
+	Viper   *viper.Viper
 	Conf    *Config
 	Cfgfile string
 )
 
-func ReadConfig() {
-	v := viper.New()
-	v.SetDefault("parallelism", 10)
-	v.SetDefault("worker", 10)
-	v.SetDefault("maxIdleTime", 3*time.Second)
+func InitViper() {
+	Viper = viper.New()
+	Viper.SetDefault("parallelism", 10)
+	Viper.SetDefault("worker", 10)
+	Viper.SetDefault("maxIdleTime", 10*time.Second)
+}
 
+func ReadConfig() {
 	if Cfgfile != "" {
-		v.SetConfigFile(Cfgfile)
+		Viper.SetConfigFile(Cfgfile)
 	} else {
-		v.SetConfigName("config")
-		v.SetConfigType("yaml")
-		v.AddConfigPath("./config")
-		v.AddConfigPath("../config")
-		v.AddConfigPath("../../config")
+		Viper.SetConfigName("config")
+		Viper.SetConfigType("yaml")
+		Viper.AddConfigPath("./config")
+		Viper.AddConfigPath("../config")
+		Viper.AddConfigPath("../../config")
 	}
-	if err := v.ReadInConfig(); err != nil {
+	if err := Viper.ReadInConfig(); err != nil {
 		log.Errorf("read in config fail %v", err)
 		panic(err)
 	}
-	if err := v.Unmarshal(&Conf); err != nil {
+	if err := Viper.Unmarshal(&Conf); err != nil {
 		log.Errorf("parse config fail %v", err)
 		panic(err)
 	}

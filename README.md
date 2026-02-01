@@ -1,8 +1,8 @@
 # crawler-go
 
-一个基于 Go 语言的高性能网络爬虫框架，支持并发爬取、规则化解析、数据收集等特性。通过简单的命令行方式即可开始爬虫！
+一个基于 Go 语言的高性能网络爬虫框架，支持爬虫规则配置、任务配置、并发爬取、规则化解析、数据收集等特性。通过简单的命令行方式即可开始爬虫！
 
-Crawler is a high performance crawler framework that helps you crawl easily.
+Crawler-go is a high performance crawler framework that helps you crawl easily.
 
 ```bash
 
