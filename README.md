@@ -183,8 +183,9 @@ func(ctx *spider.Context) {
 
 项目包含两个完整的示例：
 
-1. **豆瓣电影爬虫** (`example/douban/movie_v2.go`) - 爬取豆瓣电影正在上映和即将上映的电影信息
-2. **Quotes 爬虫** (`example/quotes/quotes.go`) - 演示登录后爬取 quotes.toscrape.com
+1. **豆瓣电影爬虫** (`recipe/douban_movie.go`) - 爬取豆瓣电影正在上映和即将上映的电影信息
+2. **Quotes 爬虫** (`recipe/quotes.go`) - 演示登录后爬取 quotes.toscrape.com
+3. **Books 爬虫** (`recipe/books_toscrape.go`) - 爬取book 动态分页，详情页 https://books.toscrape.com/?
 
 运行示例：
 
@@ -193,6 +194,8 @@ func(ctx *spider.Context) {
 go run main.go --mode recipe --run douban-movie
 
 go run main.go --mode recipe --run quotes
+
+go run main.go --goroutine 1000 --worker 1000 --mode recipe --run books_toscrape
 
 ```
 

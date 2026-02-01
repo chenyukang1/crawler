@@ -89,14 +89,15 @@ func Execute() {
 }
 
 func InitRoot() {
+	rootCmd.PersistentFlags().IntVar(&goroutine, "goroutine", 10, "The maximum groutines to use.")
+	rootCmd.PersistentFlags().IntVar(&worker, "worker", 10, "The maximum groutines to use.")
+	rootCmd.PersistentFlags().DurationVar(&dialTimeout, "dialTimeout", 3*time.Second, "The total amount of time to wait for a HTTP connection.")
+	rootCmd.PersistentFlags().DurationVar(&connTimeout, "connTimeout", 3*time.Second, "The maximum amount of time to wait for a TCP connection to be established (including DNS lookup and the three-way handshake).")
+
 	rootCmd.Flags().StringVarP(&mode, "mode", "m", "config", "Start crwal from which mode, support [config | recipe]")
 	rootCmd.Flags().StringVarP(&recipe, "run", "r", "", "The specified recipe hard-coded.")
 	rootCmd.Flags().StringVar(&crawler.Cfgfile, "config", "./config/config.yaml", "Start crwal from specied config file.")
-	rootCmd.Flags().IntVar(&goroutine, "goroutine", 10, "The maximum groutines to use.")
-	rootCmd.Flags().IntVar(&worker, "worker", 10, "The maximum groutines to use.")
 	rootCmd.Flags().DurationVar(&maxIdleTime, "maxIdleTime", 10*time.Second, "The maximum idle time for a crawler to finish.")
-	rootCmd.Flags().DurationVar(&dialTimeout, "dialTimeout", 3*time.Second, "The total amount of time to wait for a HTTP connection.")
-	rootCmd.Flags().DurationVar(&connTimeout, "connTimeout", 3*time.Second, "The maximum amount of time to wait for a TCP connection to be established (including DNS lookup and the three-way handshake).")
 
 	cobra.OnInitialize(
 		crawler.InitViper,

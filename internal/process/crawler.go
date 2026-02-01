@@ -29,31 +29,32 @@ type ICrawler interface {
 type Crawler struct {
 	Collector collect.Collector
 
-	seq      int
-	queue    TaskQueue
-	fetcher  *fetch.Fetcher
-	filter   filter.Filter
+	seq         int
+	queue       TaskQueue
+	fetcher     *fetch.Fetcher
+	filter      filter.Filter
 	maxIdleTime time.Duration
-	status   int // 执行状态
-	ctx      context.Context
-	lock     sync.RWMutex
+	status      int // 执行状态
+	ctx         context.Context
+	lock        sync.RWMutex
 }
 
 type CrawlTask struct {
-	URL           string        // 目标URL，必须设置
-	Method        string        // GET POST POST-M HEAD
-	Header        http.Header   // 请求头信息
-	EnableCookie  bool          // 是否使用Cookie
-	PostData      string        // POST values
-	DialTimeout   time.Duration // 创建连接超时 dial tcp: i/o timeout
-	ConnTimeout   time.Duration // 连接状态超时 WSARecv tcp: i/o timeout
-	Retry         retry.Retry   // 重试策略
-	RedirectTimes int           // 重定向的最大次数，-1为不限制次数
-	Priority      int           // 指定调度优先级，默认为0（最小优先级为0）
-	Reloadable    bool          // 是否允许重复该链接下载
-	SpiderName    string        // spider名称
-	RuleName      string        // 解析规则名称
-	ShouldFilter  bool          // 是否过滤
+	URL           string         // 目标URL，必须设置
+	Method        string         // GET POST POST-M HEAD
+	Header        http.Header    // 请求头信息
+	EnableCookie  bool           // 是否使用Cookie
+	PostData      string         // POST values
+	DialTimeout   time.Duration  // 创建连接超时 dial tcp: i/o timeout
+	ConnTimeout   time.Duration  // 连接状态超时 WSARecv tcp: i/o timeout
+	Retry         retry.Retry    // 重试策略
+	RedirectTimes int            // 重定向的最大次数，-1为不限制次数
+	Priority      int            // 指定调度优先级，默认为0（最小优先级为0）
+	Reloadable    bool           // 是否允许重复该链接下载
+	SpiderName    string         // spider名称
+	RuleName      string         // 解析规则名称
+	CrawlContext  map[string]any // 爬虫上下文
+	ShouldFilter  bool           // 是否过滤
 
 	proxy string // 当用户界面设置可使用代理IP时，自动设置代理
 }
@@ -72,8 +73,8 @@ const (
 	defaultMethod = "GET"
 )
 
-func DefaultCrawlTask(url string, spider string, rule string) *CrawlTask {
-	return &CrawlTask{
+func DefaultCrawlTask(url string, spider string, rule string, opts ...Option) *CrawlTask {
+	task := &CrawlTask{
 		URL:         url,
 		Method:      defaultMethod,
 		DialTimeout: 3 * time.Second,
@@ -89,9 +90,12 @@ func DefaultCrawlTask(url string, spider string, rule string) *CrawlTask {
 		RuleName:      rule,
 		ShouldFilter:  true,
 	}
+	task.WithOptions(opts...)
+
+	return task
 }
 
-func WithDailTimeout(d time.Duration) Option  {
+func WithDailTimeout(d time.Duration) Option {
 	return func(ct *CrawlTask) {
 		ct.DialTimeout = d
 	}
@@ -103,7 +107,13 @@ func WithConnTimeout(d time.Duration) Option {
 	}
 }
 
-func (c *CrawlTask) WithOptions(opts ...Option)  {
+func WithContext(c map[string]any) Option {
+	return func(ct *CrawlTask) {
+		ct.CrawlContext = c
+	}
+}
+
+func (c *CrawlTask) WithOptions(opts ...Option) {
 	for _, opt := range opts {
 		opt(c)
 	}
@@ -142,14 +152,14 @@ func (c *CrawlTask) BuildRequest() (req *fetch.Request, err error) {
 
 func NewCrawler(c context.Context, s int, q TaskQueue, t time.Duration) *Crawler {
 	return &Crawler{
-		Collector: collect.NewLogCollector(10),
-		seq:       s,
-		queue:     q,
-		fetcher:   fetch.Default,
-		filter:    filter.GlobalFilter,
-		maxIdleTime:  t,
-		status:    status.INITIAL,
-		ctx:       c,
+		Collector:   collect.NewLogCollector(10),
+		seq:         s,
+		queue:       q,
+		fetcher:     fetch.Default,
+		filter:      filter.GlobalFilter,
+		maxIdleTime: t,
+		status:      status.INITIAL,
+		ctx:         c,
 	}
 }
 
@@ -252,6 +262,7 @@ func (c *Crawler) run() {
 			Request:        request,
 			Response:       response,
 			StructuredData: make([]collect.DataCell, 0),
+			Context:        task.CrawlContext,
 		}
 		if err = ctx.Rule(task.RuleName); err != nil {
 			log.Errorf("【%s】Url【%s】规则解析失败 %v ", task.URL, task.RuleName, err)

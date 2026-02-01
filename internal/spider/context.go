@@ -22,6 +22,7 @@ type Context struct {
 	Request        *http.Request
 	Response       *http.Response
 	StructuredData []collect.DataCell
+	Context        map[string]any
 
 	html []byte            // html二进制数据
 	dom  *goquery.Document // 解析dom节点
