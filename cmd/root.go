@@ -12,6 +12,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
 	crawler "github.com/chenyukang1/crawler/internal"
 	"github.com/chenyukang1/crawler/internal/collect"
@@ -25,7 +26,8 @@ import (
 var (
 	mode        string
 	recipe      string
-	goroutines  int
+	goroutine   int
+	worker      int
 	maxIdleTime time.Duration
 	dialTimeout time.Duration
 	connTimeout time.Duration
@@ -88,15 +90,20 @@ func Execute() {
 }
 
 func InitRoot() {
-	cobra.OnInitialize(crawler.ReadConfig)
-
 	rootCmd.Flags().StringVarP(&mode, "mode", "m", "config", "Start crwal from which mode, support [config | recipe]")
 	rootCmd.Flags().StringVarP(&recipe, "run", "r", "", "The specified recipe hard-coded.")
 	rootCmd.Flags().StringVar(&crawler.Cfgfile, "config", "./config/config.yaml", "Start crwal from specied config file.")
-	rootCmd.Flags().IntVar(&crawler.Conf.Parallelism, "goroutines", 10, "The maximum groutines to use.")
-	rootCmd.Flags().DurationVar(&crawler.Conf.MaxIdleTime, "maxIdleTime", 3*time.Second, "The maximum idle time for a crawler to finish.")
+	rootCmd.Flags().IntVar(&goroutine, "goroutine", 10, "The maximum groutines to use.")
+	rootCmd.Flags().IntVar(&worker, "worker", 10, "The maximum groutines to use.")
+	rootCmd.Flags().DurationVar(&maxIdleTime, "maxIdleTime", 3*time.Second, "The maximum idle time for a crawler to finish.")
 	rootCmd.Flags().DurationVar(&dialTimeout, "dialTimeout", 3*time.Second, "The total amount of time to wait for a HTTP connection.")
 	rootCmd.Flags().DurationVar(&connTimeout, "connTimeout", 3*time.Second, "The maximum amount of time to wait for a TCP connection to be established (including DNS lookup and the three-way handshake).")
+
+	viper.BindPFlag("parallelism", rootCmd.Flags().Lookup("goroutine"))
+	viper.BindPFlag("worker", rootCmd.Flags().Lookup("worker"))
+	viper.BindPFlag("maxIdleTime", rootCmd.Flags().Lookup("maxIdleTime"))
+
+	cobra.OnInitialize(crawler.ReadConfig)
 }
 
 // parseSpiders parse conf.Spiders to spdier.Spiders

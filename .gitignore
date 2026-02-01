@@ -8,7 +8,9 @@ tmp.out
 .DS_Store
 **/.DS_Store
 .env
+.null-ls_*
 
 # Develop tools
 .idea/
 .vscode/
+crawler

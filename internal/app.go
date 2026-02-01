@@ -29,7 +29,7 @@ func Get() *App {
 	once.Do(func() {
 		ctx, cancel := context.WithCancel(context.Background())
 		taskQueue := process.NewTaskQueue(ctx)
-		pool := process.NewCrawlerPool(ctx, Conf.Parallelism)
+		pool := process.NewCrawlerPool(ctx, Conf.Worker)
 		taskQueue.Init()
 
 		container = &App{

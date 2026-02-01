@@ -1,6 +1,34 @@
 # crawler-go
 
-一个基于 Go 语言的高性能网络爬虫框架，支持并发爬取、规则化解析、数据收集等特性。
+一个基于 Go 语言的高性能网络爬虫框架，支持并发爬取、规则化解析、数据收集等特性。通过简单的命令行方式即可开始爬虫！
+
+Crawler is a high performance crawler framework that helps you crawl easily.
+
+```bash
+
+Usage:
+  crawler [flags]
+  crawler [command]
+
+Available Commands:
+  completion  Generate the autocompletion script for the specified shell
+  help        Help about any command
+  recipe      crawler pre-configed recipes
+
+Flags:
+      --config string          Start crwal from specied config file. (default "./config/config.yaml")
+      --connTimeout duration   The maximum amount of time to wait for a TCP connection to be established (including DNS lookup and the three-way handshake). (default 3s)
+      --dialTimeout duration   The total amount of time to wait for a HTTP connection. (default 3s)
+      --goroutine int          The maximum groutines to use. (default 10)
+  -h, --help                   help for crawler
+      --maxIdleTime duration   The maximum idle time for a crawler to finish. (default 3s)
+  -m, --mode string            Start crwal from which mode, support [config | recipe] (default "config")
+  -r, --run string             The specified recipe hard-coded.
+      --worker int             The maximum groutines to use. (default 10)
+
+Use "crawler [command] --help" for more information about a command.
+
+```
 
 ## 特性
 
@@ -17,8 +45,7 @@
 
 ```
 crawler-go/
-├── cmd/
-│   └── crawler/       # 主程序入口
+├── cmd/               # 命令行参数
 ├── internal/
 │   ├── app.go         # 应用主逻辑
 │   ├── spider/        # 爬虫规则引擎
@@ -31,69 +58,34 @@ crawler-go/
 │   ├── log/           # 日志组件
 │   ├── retry/         # 重试机制
 │   └── utils/         # 工具函数
-├── example/           # 示例代码
+├── recipe/           # 内置爬虫
 │   ├── douban/        # 豆瓣电影爬虫
 │   └── quotes/        # quotes.toscrape.com 爬虫
 └── config/            # 配置文件
 ```
+
+## 实现原理
+
+![原理](docs/go-crawler.png)
 
 ## 快速开始
 
 ### 安装
 
 ```bash
+
 go get github.com/chenyukang1/crawler
+
 ```
 
 ### 基本用法
 
-```go
-import (
-    crawler "github.com/chenyukang1/crawler/internal"
-    "github.com/chenyukang1/crawler/internal/spider"
-    "github.com/chenyukang1/crawler/internal/collect"
-    "github.com/chenyukang1/crawler/internal/process"
-)
+```bash
 
-func main() {
-    // 获取爬虫应用实例
-    app := crawler.Get()
+go build .
 
-    // 定义爬虫规则
-    s := &spider.Spider{
-        Name:        "示例爬虫",
-        Description: "这是一个示例爬虫",
-        Rules: map[string]*spider.Rule{
-            "Home": {
-                Name: "解析首页",
-                Run: func(ctx *spider.Context) {
-                    dom, err := ctx.GetDom()
-                    if err != nil {
-                        return
-                    }
+./crawler --run douban-movie
 
-                    // 提取数据
-                    dom.Find(".item").Each(func(i int, s *goquery.Selection) {
-                        data := collect.NewDataCell()
-                        data.Set("title", s.Find(".title").Text())
-                        ctx.StructuredData = append(ctx.StructuredData, data)
-                    })
-                },
-            },
-        },
-        EntryRule: "Home",
-    }
-
-    // 注册爬虫
-    spider.GlobalRegistry.Register("spider_name", s)
-
-    // 提交任务
-    task := process.DefaultCrawlTask("https://example.com", "spider_name", "Home")
-    app.Submit(task)
-
-    // 运行爬虫
-    app.Run()
-}
 ```
 
 ## 配置
@@ -102,15 +94,9 @@ func main() {
 
 ```yaml
 crawler:
-  parallelism: 10   # 并发爬虫数量
-  worker: 10        # Worker 数量
-  idleTime: 5       # 空闲超时时间（秒）
-```
-
-也可以通过环境变量指定配置文件路径：
-
-```bash
-export CRAWLER_CONF_PATH=/path/to/config/
+  parallelism: 10 # 并发爬虫数量
+  worker: 10 # Worker 数量
+  idleTime: 5 # 空闲超时时间（秒）
 ```
 
 ## 核心组件
@@ -203,11 +189,11 @@ func(ctx *spider.Context) {
 运行示例：
 
 ```bash
-cd example/douban
-go run movie_v2.go
 
-cd example/quotes
-go run quotes.go
+go run main.go --run douban-movie
+
+go run main.go --run quotes
+
 ```
 
 ## 依赖
