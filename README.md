@@ -181,7 +181,7 @@ func(ctx *spider.Context) {
 
 ## 示例
 
-项目包含两个完整的示例：
+项目包含三个完整的示例：
 
 1. **豆瓣电影爬虫** (`recipe/douban_movie.go`) - 爬取豆瓣电影正在上映和即将上映的电影信息
 2. **Quotes 爬虫** (`recipe/quotes.go`) - 演示登录后爬取 quotes.toscrape.com
